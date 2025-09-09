@@ -1,6 +1,6 @@
 streamlit==1.37.0
 transformers==4.44.2
-torch==2.4.0
-accelerate==0.33.0
-sentencepiece==0.2.0
-safetensors==0.4.4
+torch
+accelerate
+sentencepiece>=0.1.99
+safetensors
