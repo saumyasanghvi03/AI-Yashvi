@@ -5,12 +5,12 @@ import warnings
 import tempfile
 import base64
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from gtts import gTTS
 
 # ======================
 # CONFIG & WARNINGS
 # ======================
 warnings.filterwarnings("ignore", message=".*flash-attn.*")
-
 MODEL_ID = "microsoft/phi-3-mini-4k-instruct"
 REVISION = "main"
 
@@ -42,7 +42,7 @@ def load_model():
         MODEL_ID,
         revision=REVISION,
         trust_remote_code=True,
-        attn_implementation="eager"  # avoids flash-attn errors
+        attn_implementation="eager"
     )
     return tokenizer, model
 
@@ -69,8 +69,6 @@ def generate_response(prompt, memory):
 # ======================
 # TTS FUNCTION
 # ======================
-from gtts import gTTS
-
 def speak_text(text, lang="en"):
     tts = gTTS(text=text, lang=lang, tld="co.in")
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
