@@ -1,0 +1,14 @@
+streamlit
+faiss-cpu
+sentence-transformers
+transformers
+torch
+gTTS
+matplotlib
+streamlit-webrtc
+vosk
+scipy
+soundfile
+av
+requests
+hashlib
