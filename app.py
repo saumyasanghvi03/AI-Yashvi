@@ -3,7 +3,6 @@ import os
 import json
 import warnings
 from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
 
 # ======================
 # CONFIG & WARNINGS
@@ -11,7 +10,7 @@ import torch
 warnings.filterwarnings("ignore", message=".*flash-attn.*")
 
 MODEL_ID = "microsoft/phi-3-mini-4k-instruct"
-REVISION = "main"   # You can also pin to a commit hash for stability
+REVISION = "main"   # Pin for stability
 
 # Default admin login (change before public use!)
 ADMIN_USERNAME = "admin"
