@@ -42,7 +42,7 @@ LANG_GTT_LANG_MAPPING = {
 }
 
 # Gemini AI Search API config (User must input their API key here)
-GEMINI_API_KEY = ""  # Set your Gemini AI API key here for search integration
+GEMINI_API_KEY = "AIzaSyBjkMVflfN60zr8hSWB7B0_n31vBkylj_Y"  # Set your Gemini AI API key here for search integration
 
 os.makedirs(JOURNAL_DIR, exist_ok=True)
 os.makedirs("audio", exist_ok=True)
