@@ -5,10 +5,6 @@ import warnings
 import tempfile
 import base64
 from transformers import AutoModelForCausalLM, AutoTokenizer
-import torch
-import whisper
-from gtts import gTTS
-import speech_recognition as sr
 
 # ======================
 # CONFIG & WARNINGS
@@ -17,6 +13,7 @@ warnings.filterwarnings("ignore", message=".*flash-attn.*")
 MODEL_ID = "microsoft/phi-3-mini-4k-instruct"
 REVISION = "main"
 
+# Admin credentials
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"
 MEMORY_FILE = "memory.json"
@@ -44,20 +41,11 @@ def load_model():
         MODEL_ID,
         revision=REVISION,
         trust_remote_code=True,
-        attn_implementation="eager"
+        attn_implementation="eager"  # avoids flash-attn errors
     )
     return tokenizer, model
 
 tokenizer, model = load_model()
-
-# ======================
-# LOAD WHISPER STT
-# ======================
-@st.cache_resource
-def load_stt():
-    return whisper.load_model("small")
-
-stt_model = load_stt()
 
 # ======================
 # CHAT FUNCTION
@@ -80,6 +68,8 @@ def generate_response(prompt, memory):
 # ======================
 # TTS FUNCTION
 # ======================
+from gtts import gTTS
+
 def speak_text(text, lang="en"):
     tts = gTTS(text=text, lang=lang, tld="co.in")
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
@@ -123,14 +113,16 @@ st.write("Jai Jinendra 🙏 I'm Yashvi, your Jain sister. I’m here to listen, 
 memory = load_memory()
 
 # ======================
-# Multilingual Input
+# Language selection
 # ======================
 lang = st.selectbox("Choose Language:", ["English", "Hindi", "Gujarati"])
 lang_code = {"English":"en", "Hindi":"hi", "Gujarati":"gu"}[lang]
 
+# ======================
 # Text Input
+# ======================
 user_input = st.text_area("📝 Type your message here:")
-if st.button("Send Text"):
+if st.button("Send"):
     if user_input.strip():
         memory["chat"].append({"role": "User", "content": user_input})
         response = generate_response(user_input, memory)
@@ -140,30 +132,9 @@ if st.button("Send Text"):
         audio_file = speak_text(response, lang=lang_code)
         autoplay_audio(audio_file)
 
-# Optional Voice Input
-st.subheader("🎤 Or Record Voice (Hindi / Gujarati / English)")
-if st.button("Record & Send Voice"):
-    st.warning("Currently, record feature requires local microphone support in Streamlit (best on local PC).")
-    st.info("You can upload a voice file for processing.")
-    audio_file_upload = st.file_uploader("Upload your voice message (.mp3/.wav)", type=["mp3","wav"])
-    if audio_file_upload:
-        recognizer = sr.Recognizer()
-        with sr.AudioFile(audio_file_upload) as source:
-            audio_data = recognizer.record(source)
-        try:
-            text = recognizer.recognize_google(audio_data, language=lang_code)
-            st.success(f"You said: {text}")
-            memory["chat"].append({"role": "User", "content": text})
-            response = generate_response(text, memory)
-            memory["chat"].append({"role": "Yashvi", "content": response})
-            save_memory(memory)
-            st.write(f"**Yashvi:** {response}")
-            audio_file = speak_text(response, lang=lang_code)
-            autoplay_audio(audio_file)
-        except:
-            st.error("Could not understand audio.")
-
-# Show chat history
+# ======================
+# Chat history
+# ======================
 if st.checkbox("📜 Show chat history"):
     for msg in memory["chat"]:
         st.write(f"**{msg['role']}:** {msg['content']}")
