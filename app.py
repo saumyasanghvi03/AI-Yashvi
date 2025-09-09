@@ -10,8 +10,6 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 # CONFIG & WARNINGS
 # ======================
 warnings.filterwarnings("ignore", message=".*flash-attn.*")
-MODEL_ID = "microsoft/phi-3-mini-4k-instruct"
-REVISION = "main"
 
 # Admin credentials
 ADMIN_USERNAME = "admin"
