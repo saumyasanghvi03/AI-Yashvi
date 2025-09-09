@@ -1,0 +1,13 @@
+streamlit==1.26.1
+sentence-transformers==2.2.2
+faiss-cpu==1.7.4
+transformers==4.34.0
+torch==2.1.0
+gTTS==2.3.2
+matplotlib==3.8.1
+streamlit-webrtc==1.0.4
+vosk==0.3.76
+scipy==1.11.1
+soundfile==0.12.1
+av==10.0.0
+requests==2.31.0
