@@ -1,6 +1,9 @@
 streamlit==1.37.0
 transformers==4.44.2
-torch
-accelerate
-sentencepiece>=0.1.99
-safetensors
+torch==2.2.2
+accelerate==0.28.0
+sentencepiece==0.1.99
+safetensors==0.4.2
+gTTS==2.3.2
+SpeechRecognition==3.9.0
+whisper==20230606
