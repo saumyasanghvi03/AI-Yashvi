@@ -1,6 +1,6 @@
 streamlit==1.37.0
 transformers==4.44.2
-torch==2.2.2
+torch==2.8.0   # compatible with Python 3.13
 accelerate==0.28.0
 sentencepiece==0.1.99
 safetensors==0.4.2
