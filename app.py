@@ -1,6 +1,6 @@
 # ==============================================================================
-# AI SISTER YASHVI - STREAMLIT SINGLE-FILE APPLICATION (V2 - Universal UX)
-# Features: Chat, Multi-lingual TTS, Image Generation, Dynamic Persona Mode
+# AI SISTER YASHVI - STREAMLIT SINGLE-FILE APPLICATION (V3 - With Streaming)
+# Features: Chat (Streaming), Multi-lingual TTS, Image Generation, Dynamic Persona
 # ==============================================================================
 
 import streamlit as st
@@ -53,7 +53,7 @@ def get_system_instruction(mode: str) -> str:
     standard_instruction = (
         "First, attempt to answer the user's question using any knowledge provided in the 'RAG_CONTEXT' section of the prompt. "
         "If the RAG_CONTEXT is empty or insufficient, use the integrated Google Search to find relevant information. "
-        "Maintain conversation context based on the provided chat history."
+        "Maintain conversation context based on the provided chat history. Remember, your primary goal is to be helpful and supportive like a big sister."
     )
     return base_instruction + style_instruction + standard_instruction
 
@@ -69,7 +69,8 @@ except KeyError:
     st.code("GEMINI_API_KEY = \"YOUR_KEY_HERE\"", language="toml")
     st.stop()
 
-GEMINI_CHAT_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+# Use the streaming endpoint for chat
+GEMINI_CHAT_STREAM_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 GEMINI_IMAGE_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{IMAGE_MODEL}:predict?key={GEMINI_API_KEY}"
 
 
@@ -92,17 +93,18 @@ def get_tts_base64(text: str, lang_code: str) -> str:
     """Converts text to speech using gTTS and returns base64 encoded audio."""
     try:
         mp3_fp = io.BytesIO()
-        tts = gTTS(text=text, lang=lang_code, tld="co.in") 
+        # Use a stable tld if co.in causes issues
+        tts = gTTS(text=text, lang=lang_code, tld="com") 
         tts.write_to_fp(mp3_fp)
         mp3_fp.seek(0)
         return base64.b64encode(mp3_fp.read()).decode()
     except Exception as e:
-        st.error(f"TTS failed: Could not generate audio for the selected language.")
+        # st.error(f"TTS failed: Could not generate audio for the selected language.")
         return ""
 
 
-def call_gemini_api(payload: dict, url: str) -> requests.Response:
-    """Handles API call with exponential backoff."""
+def call_gemini_api(payload: dict, url: str, stream: bool = False) -> requests.Response:
+    """Handles API call with exponential backoff and streaming support."""
     max_retries = 5
     for i in range(max_retries):
         try:
@@ -110,11 +112,22 @@ def call_gemini_api(payload: dict, url: str) -> requests.Response:
                 url,
                 headers={'Content-Type': 'application/json'},
                 data=json.dumps(payload),
-                timeout=60
+                timeout=60,
+                stream=stream
             )
             response.raise_for_status()
             return response
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.HTTPError as e:
+            if response is not None and response.status_code == 400:
+                try:
+                    error_json = response.json()
+                    error_detail = error_json.get('error', {}).get('message', str(e))
+                    st.error(f"⚠️ **Bad Request Error (400):** The API rejected the request. Details: {error_detail}")
+                    st.stop()
+                except json.JSONDecodeError:
+                    st.error(f"⚠️ **Bad Request Error (400):** API response content was not readable. Status: {response.text}")
+                    st.stop()
+            
             if i < max_retries - 1:
                 wait_time = 2 ** i
                 time.sleep(wait_time)
@@ -124,12 +137,13 @@ def call_gemini_api(payload: dict, url: str) -> requests.Response:
                 st.stop()
     return response
 
+
 # ======================
 # LLM & IMAGE FUNCTIONS
 # ======================
 
-def ask_yashvi(prompt: str, history: list, mode: str) -> str:
-    """Generates a response using the Gemini API."""
+def prepare_chat_payload(prompt: str, history: list, mode: str):
+    """Prepares the structured payload for the Gemini chat API."""
     
     # 1. RAG / Document Retrieval Simulation (Placeholder)
     rag_context = "Your knowledge base is founded on Jain principles: Ahimsa (non-violence), Anekantavada (non-absolutism), Aparigraha (non-possessiveness)." 
@@ -149,17 +163,7 @@ def ask_yashvi(prompt: str, history: list, mode: str) -> str:
         "tools": [{ "google_search": {} }], 
         "config": {"temperature": 0.7, "maxOutputTokens": 250}
     }
-    
-    with st.spinner("Yashvi is thinking..."):
-        response = call_gemini_api(payload, GEMINI_CHAT_URL)
-
-    result = response.json()
-    try:
-        text = result['candidates'][0]['content']['parts'][0]['text']
-        return text
-    except (KeyError, IndexError):
-        st.error("LLM returned an empty or malformed response.")
-        return "I'm sorry, I encountered an internal issue and cannot respond right now."
+    return payload
 
 
 def generate_image(prompt: str) -> str:
@@ -176,7 +180,7 @@ def generate_image(prompt: str) -> str:
     }
 
     with st.spinner("✨ Yashvi is visualizing your intention..."):
-        response = call_gemini_api(payload, GEMINI_IMAGE_URL)
+        response = call_gemini_api(payload, GEMINI_IMAGE_URL, stream=False)
         
     result = response.json()
     try:
@@ -293,6 +297,7 @@ with chat_container:
     if not st.session_state.chat_history:
         st.info("Start the conversation! Ask Yashvi for advice, spiritual knowledge, or just share your day.")
     
+    # Display existing history
     for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"].lower()):
             st.markdown(msg["content"])
@@ -308,16 +313,52 @@ if user_input:
         with st.chat_message("user"):
             st.markdown(user_input)
     
-    # 2. Generate response (using the selected mode)
-    response_text = ask_yashvi(user_input, st.session_state.chat_history, st.session_state.user_mode)
+    # 2. Prepare Payload
+    payload = prepare_chat_payload(user_input, st.session_state.chat_history, st.session_state.user_mode)
     
-    # 3. Add AI response to history and display
-    st.session_state.chat_history.append({"role": "Yashvi", "content": response_text})
-    with chat_container:
-        with st.chat_message("assistant"):
-            st.markdown(response_text)
+    # 3. Start streaming the AI response
+    full_response_text = ""
     
-    # 4. Generate and autoplay audio
-    audio_b64 = get_tts_base64(response_text, lang_code)
-    if audio_b64:
-        autoplay_audio(audio_b64)
+    with st.chat_message("assistant"):
+        # Create an empty element to write the streaming text into
+        message_placeholder = st.empty()
+        
+        try:
+            # Call API with streaming enabled
+            response = call_gemini_api(payload, GEMINI_CHAT_STREAM_URL, stream=True)
+            
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    try:
+                        # The API returns chunks separated by newlines, sometimes with data: prefix
+                        for line in chunk.decode('utf-8').split('\n'):
+                            if line.strip().startswith('{"candidates"'):
+                                data = json.loads(line.strip())
+                                # Extract text chunk from the complex JSON structure
+                                text_chunk = data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+                                
+                                if text_chunk:
+                                    full_response_text += text_chunk
+                                    # Update the placeholder instantly
+                                    message_placeholder.markdown(full_response_text + "▌", unsafe_allow_html=True) 
+
+                    except json.JSONDecodeError:
+                        # Ignore malformed or incomplete JSON lines
+                        continue
+        
+        except Exception as e:
+            st.error(f"An error occurred during streaming: {e}")
+            full_response_text = "I'm sorry, I lost connection while trying to respond."
+        
+        finally:
+            # 4. Finalize the displayed message and remove the cursor
+            message_placeholder.markdown(full_response_text)
+            
+            # 5. Add final, complete AI response to history
+            st.session_state.chat_history.append({"role": "Yashvi", "content": full_response_text})
+            
+            # 6. Generate and autoplay audio (only after the full text is available)
+            if full_response_text:
+                audio_b64 = get_tts_base64(full_response_text, lang_code)
+                if audio_b64:
+                    autoplay_audio(audio_b64)
