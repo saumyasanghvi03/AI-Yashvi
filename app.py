@@ -11,7 +11,7 @@ import base64
 from gtts import gTTS
 import io
 import requests
-import speech_recognition as sr 
+import speech_recognition as sr
 
 # ======================
 # CONFIGURATION
@@ -77,6 +77,7 @@ GEMINI_CHAT_STREAM_URL = f"https://generativelanguage.googleapis.com/v1beta/mode
 GEMINI_IMAGE_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{IMAGE_MODEL}:predict?key={GEMINI_API_KEY}"
 
 
+
 # ======================
 # HELPER FUNCTIONS
 # ======================
@@ -89,6 +90,8 @@ def autoplay_audio(audio_base64_data):
     </audio>
     """
     st.markdown(md, unsafe_allow_html=True)
+
+
 
 
 @st.cache_data(show_spinner=False)
@@ -104,6 +107,8 @@ def get_tts_base64(text: str, lang_code: str) -> str:
     except Exception as e:
         # st.error(f"TTS failed: Could not generate audio for the selected language.")
         return ""
+
+
 
 
 def call_gemini_api(payload: dict, url: str, stream: bool = False) -> requests.Response:
@@ -123,14 +128,18 @@ def call_gemini_api(payload: dict, url: str, stream: bool = False) -> requests.R
             return response
         except requests.exceptions.HTTPError as e:
             if response is not None and response.status_code == 400:
-                try:
-                    error_json = response.json()
-                    error_detail = error_json.get('error', {}).get('message', str(e))
-                    st.error(f"⚠️ **Bad Request Error (400):** The API rejected the request. Details: {error_detail}")
-                    st.stop()
-                except json.JSONDecodeError:
-                    st.error(f"⚠️ **Bad Request Error (400):** API response content was not readable. Status: {response.text}")
-                    st.stop()
+                # Don't stop the app for image generation errors
+                if "imagen" in url.lower():
+                    raise Exception(f"Image generation API error: {response.text}")
+                else:
+                    try:
+                        error_json = response.json()
+                        error_detail = error_json.get('error', {}).get('message', str(e))
+                        st.error(f"⚠️ **Bad Request Error (400):** The API rejected the request. Details: {error_detail}")
+                        st.stop()
+                    except json.JSONDecodeError:
+                        st.error(f"⚠️ **Bad Request Error (400):** API response content was not readable. Status: {response.text}")
+                        st.stop()
             
             if i < max_retries - 1:
                 wait_time = 2 ** i
@@ -140,6 +149,7 @@ def call_gemini_api(payload: dict, url: str, stream: bool = False) -> requests.R
                 st.error("Service is currently unavailable. Please try again later.")
                 st.stop()
     return response
+
 
 
 # ======================
@@ -170,6 +180,8 @@ def prepare_chat_payload(prompt: str, history: list, mode: str):
     return payload
 
 
+
+
 def generate_image(prompt: str) -> str:
     """Generates an image using the Imagen API and returns a base64 encoded image URL."""
     
@@ -184,16 +196,25 @@ def generate_image(prompt: str) -> str:
         "parameters": {"sampleCount": 1}
     }
 
-    with st.spinner("✨ Yashvi is visualizing your intention..."):
-        response = call_gemini_api(payload, GEMINI_IMAGE_URL, stream=False)
-        
-    result = response.json()
     try:
-        b64_data = result['predictions'][0]['bytesBase64Encoded']
-        return f"data:image/png;base64,{b64_data}"
-    except (KeyError, IndexError, TypeError):
-        st.error("Image generation failed. Please try a different prompt or check API configuration.")
+        with st.spinner("✨ Yashvi is visualizing your intention..."):
+            response = call_gemini_api(payload, GEMINI_IMAGE_URL, stream=False)
+            
+        result = response.json()
+        try:
+            b64_data = result['predictions'][0]['bytesBase64Encoded']
+            return f"data:image/png;base64,{b64_data}"
+        except (KeyError, IndexError, TypeError):
+            st.error("Image generation failed. Please try a different prompt or check API configuration.")
+            return ""
+    except Exception as e:
+        if "billed users" in str(e):
+            st.warning("🖼️ **Image Generation Notice:** The image generation feature currently requires billing setup. For now, enjoy Yashvi's conversational wisdom! 🙏")
+        else:
+            st.error(f"Image generation error: {str(e)}")
         return ""
+
+
 
 
 def listen_for_speech(lang_code):
@@ -221,6 +242,8 @@ def listen_for_speech(lang_code):
             st.error("Speech service unavailable. Check your internet connection.")
         except Exception as e:
             st.error(f"Microphone error: Please ensure your browser has microphone permission. Note: Voice input may not work in all cloud environments.")
+
+
 
 
 # ======================
@@ -260,6 +283,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+
 # --- Initialize Session State ---
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -267,6 +291,7 @@ if "user_mode" not in st.session_state:
     st.session_state.user_mode = "Deep Dive (Elders/Learners) 🧘‍♀️" # Default to accessible mode
 if "voice_prompt" not in st.session_state:
     st.session_state.voice_prompt = ""
+
 
 
 # --- Header and Introduction ---
@@ -279,6 +304,7 @@ with col2:
     st.write("Jai Jinendra 🙏 I'm Yashvi, your compassionate AI companion.")
 
 st.markdown("---")
+
 
 
 # --- Sidebar Configuration (Fixed Settings) ---
@@ -330,6 +356,7 @@ with st.sidebar:
         st.experimental_rerun()
 
 
+
 # --- Main Chat Interface ---
 
 st.subheader(f"Chat Mode: **{st.session_state.user_mode}**")
@@ -342,6 +369,7 @@ with chat_container:
     for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"].lower()):
             st.markdown(msg["content"])
+
 
 
 # --- Voice and Text Input ---
@@ -365,6 +393,7 @@ if st.session_state.voice_prompt:
     # Clear the voice prompt after retrieving it
     st.markdown(f"**You (via voice):** *{prompt_to_process}*")
     st.session_state.voice_prompt = "" # Process only once
+
 
 
 if prompt_to_process:
