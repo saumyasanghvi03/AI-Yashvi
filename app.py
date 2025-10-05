@@ -1,5 +1,5 @@
 # ==============================================================================
-# AI SISTER YASHVI - STREAMLIT SINGLE-FILE APPLICATION (V5 - Voice Input Added)
+# AI SISTER YASHVI - STREAMLIT SINGLE-FILE APPLICATION (V6 - Final & Corrected)
 # Features: Chat (Streaming), Multi-lingual TTS/STT, Image Generation, Dynamic Persona
 # ==============================================================================
 
@@ -11,14 +11,14 @@ import base64
 from gtts import gTTS
 import io
 import requests
-import speech_recognition as sr # NEW: For Push-to-Talk functionality
+import speech_recognition as sr 
 
 # ======================
 # CONFIGURATION
 # ======================
 
 # Gemini API Configuration
-# UPGRADED to PRO model for better reasoning and adherence to instructions
+# Using the PRO model for advanced reasoning and instruction adherence
 GEMINI_MODEL = "gemini-2.5-pro-preview-05-20" 
 IMAGE_MODEL = "imagen-3.0-generate-002"
 
@@ -111,12 +111,13 @@ def call_gemini_api(payload: dict, url: str, stream: bool = False) -> requests.R
     max_retries = 5
     for i in range(max_retries):
         try:
+            # Set stream=True for chat streaming requests
             response = requests.post(
                 url,
                 headers={'Content-Type': 'application/json'},
                 data=json.dumps(payload),
                 timeout=60,
-                stream=stream
+                stream=stream 
             )
             response.raise_for_status()
             return response
@@ -164,7 +165,7 @@ def prepare_chat_payload(prompt: str, history: list, mode: str):
         "contents": chat_history_parts,
         "systemInstruction": get_system_instruction(mode), 
         "tools": [{ "google_search": {} }], 
-        "config": {"temperature": 0.7, "maxOutputTokens": 250}
+        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 250} # CORRECTED key from 'config' to 'generationConfig'
     }
     return payload
 
@@ -172,7 +173,8 @@ def prepare_chat_payload(prompt: str, history: list, mode: str):
 def generate_image(prompt: str) -> str:
     """Generates an image using the Imagen API and returns a base64 encoded image URL."""
     
-    style_prompt = f"A high-quality, inspiring digital art image representing the core Jain principle of '{prompt}'. Ensure the style is peaceful, warm, and visually appealing for meditation or reflection."
+    # Enhance the prompt to guide the model away from policy violations (like specific deities)
+    style_prompt = f"A high-quality, inspiring digital art image representing the core Jain principle of '{prompt}'. Ensure the style is peaceful, warm, and visually appealing for meditation or reflection, avoiding specific religious figures."
     
     payload = {
         "instances": {
@@ -203,7 +205,8 @@ def listen_for_speech(lang_code):
         try:
             with sr.Microphone() as source:
                 r.adjust_for_ambient_noise(source)
-                audio = r.listen(source, timeout=5, phrase_time_limit=15) # Increased limits
+                # Set timeout and phrase_time_limit for a better UX
+                audio = r.listen(source, timeout=5, phrase_time_limit=15) 
             
             # The recognized text is stored in session state
             recognized_text = r.recognize_google(audio, language=lang_code)
@@ -218,7 +221,6 @@ def listen_for_speech(lang_code):
             st.error("Speech service unavailable. Check your internet connection.")
         except Exception as e:
             st.error(f"Microphone error: Please ensure your browser has microphone permission. Note: Voice input may not work in all cloud environments.")
-            print(f"Full error: {e}")
 
 
 # ======================
@@ -270,7 +272,7 @@ if "voice_prompt" not in st.session_state:
 # --- Header and Introduction ---
 col1, col2 = st.columns([1, 4])
 with col1:
-    # Placeholder for a simple Avatar image URL if you provide one later
+    # Placeholder for a simple Avatar image URL 
     st.image("https://placehold.co/100x100/A52A2A/FFFFFF?text=Yashvi", width=80) 
 with col2:
     st.title("🌸 AI Sister Yashvi 🌸")
@@ -393,12 +395,13 @@ if prompt_to_process:
                         for line in chunk.decode('utf-8').split('\n'):
                             line = line.strip()
                             if line:
+                                # The stream returns JSON objects separated by newlines
                                 data = json.loads(line)
                                 text_chunk = data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
                                 
                                 if text_chunk:
                                     full_response_text += text_chunk
-                                    # Update the placeholder instantly
+                                    # Update the placeholder instantly, adding a cursor
                                     message_placeholder.markdown(full_response_text + "▌", unsafe_allow_html=True) 
 
                     except json.JSONDecodeError:
