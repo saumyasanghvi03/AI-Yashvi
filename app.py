@@ -1,6 +1,6 @@
 # ==============================================================================
 # AI SISTER YASHVI - PREMIUM EDITION
-# Sophisticated Jain Spiritual Companion
+# Sophisticated Jain Spiritual Companion with Knowledge Memory
 # ==============================================================================
 
 import streamlit as st
@@ -41,73 +41,249 @@ LANG_MAP = {
     "Sanskrit": "sa"
 }
 
-# Premium Jain Knowledge Graph
-JAIN_WISDOM_DATABASE = {
-    "core_principles": {
-        "ahimsa": {
-            "title": "🕊️ Ahimsa (Non-violence)",
-            "description": "The fundamental principle of causing no harm to any living being",
-            "practices": [
-                "Practice mindful eating with gratitude",
-                "Speak words that heal, not hurt", 
-                "Cultivate compassion in thoughts and actions",
-                "Choose products that minimize harm to nature"
-            ],
-            "quotes": [
-                "Non-violence is the highest religion. - Mahavira",
-                "In happiness and suffering, in joy and grief, we should regard all creatures as we regard our own self."
-            ]
-        },
-        "anekantavada": {
-            "title": "🔶 Anekantavada (Multiple Perspectives)",
-            "description": "The doctrine of manifold aspects and relativity of truth",
-            "practices": [
-                "Consider multiple viewpoints before forming opinions",
-                "Practice active listening without judgment",
-                "Embrace diversity of thought and culture",
-                "Avoid absolute statements about complex truths"
-            ],
-            "quotes": [
-                "Truth is multifaceted; wisdom lies in understanding this multiplicity.",
-                "The wise understand others' views without abandoning their own."
-            ]
-        },
-        "aparigraha": {
-            "title": "📦 Aparigraha (Non-possessiveness)",
-            "description": "Non-attachment to material and mental possessions",
-            "practices": [
-                "Regularly declutter physical and digital spaces",
-                "Practice gratitude for what you have",
-                "Share resources with those in need",
-                "Focus on experiences over possessions"
-            ],
-            "quotes": [
-                "The more you possess, the more you are possessed.",
-                "Contentment is the greatest wealth."
-            ]
+# ======================
+# JAIN KNOWLEDGE MEMORY SYSTEM
+# ======================
+
+class JainKnowledgeMemory:
+    def __init__(self):
+        self.knowledge_base = self._load_knowledge_base()
+        self.conversation_memory = []
+        
+    def _load_knowledge_base(self):
+        """Load Jain knowledge from embedded memory"""
+        return {
+            "core_principles": {
+                "six_dravyas": {
+                    "title": "🪷 Six Dravyas (Substances)",
+                    "content": """According to Jain philosophy, the universe consists of six eternal substances:
+
+1. **Jiva** - Living souls (conscious beings)
+2. **Ajiva** - Non-living substances:
+   - Pudgala (Matter)
+   - Dharma (Medium of motion)
+   - Adharma (Medium of rest)
+   - Akasha (Space)
+   - Kala (Time)
+
+These six dravyas form the foundation of Jain metaphysics.""",
+                    "keywords": ["dravya", "substance", "jiva", "ajiva", "soul", "matter"]
+                },
+                "nine_tattvas": {
+                    "title": "📊 Nine Tattvas (Principles)",
+                    "content": """The nine fundamental principles that explain the nature of reality:
+
+1. **Jiva** - Soul
+2. **Ajiva** - Non-soul
+3. **Asrava** - Influx of karma
+4. **Bandha** - Bondage of karma
+5. **Punya** - Virtuous karma
+6. **Papa** - Sinful karma
+7. **Samvara** - Stoppage of karma influx
+8. **Nirjara** - Shedding of accumulated karma
+9. **Moksha** - Liberation
+
+Understanding these leads to spiritual progress.""",
+                    "keywords": ["tattva", "principle", "karma", "moksha", "liberation"]
+                },
+                "ahimsa": {
+                    "title": "🕊️ Ahimsa (Non-violence)",
+                    "content": """The supreme principle of Jainism - causing no harm to any living being.
+
+**Three Forms of Ahimsa:**
+- **Physical** - Not harming any creature
+- **Verbal** - Speaking gentle, truthful words
+- **Mental** - Cultivating compassionate thoughts
+
+**Practice:** Before any action, ask: "Will this cause harm to any living being?"""",
+                    "keywords": ["ahimsa", "non-violence", "harm", "compassion", "kindness"]
+                },
+                "anekantavada": {
+                    "title": "🔶 Anekantavada (Multiple Viewpoints)",
+                    "content": """The doctrine of manifold aspects that acknowledges truth is multi-dimensional.
+
+**Key Aspects:**
+- Reality can be expressed in many ways
+- Avoid absolute statements and dogmatic thinking
+- Respect all perspectives while maintaining your truth
+
+**Practice:** When facing conflict, consider at least three different viewpoints before forming conclusions.""",
+                    "keywords": ["anekantavada", "viewpoints", "perspective", "truth", "relativity"]
+                },
+                "aparigraha": {
+                    "title": "📦 Aparigraha (Non-possessiveness)",
+                    "content": """Freedom from attachment to material and mental possessions.
+
+**Benefits:**
+- Inner peace and contentment
+- Reduced anxiety and stress
+- Spiritual clarity
+- Environmental sustainability
+
+**Practice:** Regularly give away things you haven't used in 6 months. Practice gratitude for what you have.""",
+                    "keywords": ["aparigraha", "non-possessiveness", "attachment", "minimalism", "simplicity"]
+                }
+            },
+            "spiritual_practices": {
+                "meditation": {
+                    "title": "🧘‍♀️ Meditation Practices",
+                    "content": """Jain meditation techniques for spiritual development:
+
+**Preksha Meditation:**
+- Focus on breath and body awareness
+- 20-30 minutes daily practice
+- Develops concentration and mindfulness
+
+**Samayika:**
+- 48-minute practice of equanimity
+- Cultivates mental balance
+- Can be done at home or temple
+
+**Anupreksha:**
+- Contemplation on fundamental truths
+- Reflection on impermanence and non-attachment""",
+                    "keywords": ["meditation", "samayika", "preksha", "contemplation", "mindfulness"]
+                },
+                "daily_routine": {
+                    "title": "🌅 Daily Spiritual Routine",
+                    "content": """Ideal daily practices for spiritual growth:
+
+**Morning (5-6 AM):**
+- Wake before sunrise
+- Recite Navkar Mantra
+- Practice Samayika meditation
+- Set intentions for practicing Ahimsa
+
+**Throughout Day:**
+- Mindful eating with gratitude
+- Conscious speech and actions
+- Regular moments of mindfulness
+
+**Evening:**
+- Review day's thoughts and actions
+- Practice Pratikraman (repentance)
+- Plan improvements for tomorrow""",
+                    "keywords": ["routine", "daily", "practice", "schedule", "discipline"]
+                }
+            },
+            "scriptures": {
+                "tattvartha_sutra": {
+                    "title": "📖 Tattvartha Sutra",
+                    "content": """The foundational text of Jain philosophy composed by Acharya Umaswati.
+
+**Key Teachings:**
+- "Samyag-darshan-jnana-charitrani moksha-margah" - Right faith, knowledge, and conduct form the path to liberation
+- Detailed explanation of six dravyas and nine tattvas
+- Guide to spiritual progress and ethical living
+
+Considered the most authoritative Jain scripture accepted by all traditions.""",
+                    "keywords": ["tattvartha", "sutra", "scripture", "umaswati", "philosophy"]
+                },
+                "acharanga_sutra": {
+                    "title": "📜 Acharanga Sutra",
+                    "content": """The first Anga text containing Lord Mahavira's teachings on conduct.
+
+**Key Principles:**
+- Detailed instructions on Ahimsa
+- Guidelines for ascetic life
+- Emphasis on mindful movement and action
+- Foundation of Jain ethical code
+
+One of the oldest Jain texts, essential for understanding early Jain practices.""",
+                    "keywords": ["acharanga", "mahavira", "conduct", "ethics", "anga"]
+                }
+            },
+            "prayers": {
+                "navkar_mantra": {
+                    "title": "🕉️ Navkar Mantra",
+                    "content": """The most fundamental Jain prayer:
+
+**Mantra:**
+"Namo Arihantanam
+Namo Siddhanam
+Namo Ayariyanam
+Namo Uvajjhayanam
+Namo Loe Savva Sahunam
+Eso Panch Namukkaro
+Savva Pava Panasano
+Mangalanam Cha Savvesim
+Padhamam Havai Mangalam"
+
+**Meaning:** I bow to the Arihants, I bow to the Siddhas, I bow to the Acharyas, I bow to the Upadhyayas, I bow to all Sadhus. This fivefold salutation destroys all sins and is the foremost of all auspicious things.""",
+                    "keywords": ["navkar", "mantra", "prayer", "namokar", "arihant"]
+                }
+            }
         }
-    },
-    "daily_practices": {
-        "meditation": "Begin each day with 10 minutes of mindful breathing to center yourself",
-        "prayer": "Offer prayers with sincere gratitude and reflection",
-        "mindful_eating": "Eat with awareness, considering the journey of your food",
-        "self_reflection": "End each day with honest self-assessment and learning"
-    }
-}
+    
+    def search_knowledge(self, query):
+        """Search through knowledge base for relevant information"""
+        query_lower = query.lower()
+        relevant_sections = []
+        
+        for category, topics in self.knowledge_base.items():
+            for topic_key, topic_data in topics.items():
+                # Check title and keywords
+                title_match = topic_data['title'].lower() in query_lower
+                keyword_match = any(keyword in query_lower for keyword in topic_data['keywords'])
+                
+                if title_match or keyword_match:
+                    relevant_sections.append({
+                        'category': category,
+                        'title': topic_data['title'],
+                        'content': topic_data['content'],
+                        'relevance_score': self._calculate_relevance(query_lower, topic_data)
+                    })
+        
+        # Sort by relevance and return top 3
+        relevant_sections.sort(key=lambda x: x['relevance_score'], reverse=True)
+        return relevant_sections[:3]
+    
+    def _calculate_relevance(self, query, topic_data):
+        """Calculate how relevant a topic is to the query"""
+        score = 0
+        query_words = set(query.split())
+        
+        # Check title words
+        title_words = set(topic_data['title'].lower().split())
+        score += len(query_words.intersection(title_words)) * 3
+        
+        # Check keywords
+        keyword_matches = sum(1 for keyword in topic_data['keywords'] if keyword in query)
+        score += keyword_matches * 2
+        
+        # Check content (first 100 chars)
+        content_preview = topic_data['content'][:100].lower()
+        content_matches = sum(1 for word in query_words if word in content_preview)
+        score += content_matches
+        
+        return score
+    
+    def add_conversation_memory(self, user_input, response):
+        """Store important conversations for context"""
+        self.conversation_memory.append({
+            'timestamp': datetime.now().isoformat(),
+            'user_input': user_input,
+            'response': response
+        })
+        
+        # Keep only last 20 conversations
+        if len(self.conversation_memory) > 20:
+            self.conversation_memory.pop(0)
 
 # ======================
 # PREMIUM RESPONSE ENGINE
 # ======================
 
 class PremiumResponseEngine:
-    def __init__(self):
+    def __init__(self, knowledge_memory):
+        self.knowledge_memory = knowledge_memory
         self.conversation_context = []
         self.user_profile = {}
         
     def analyze_sentiment(self, text):
         """Basic sentiment analysis for empathetic responses"""
-        positive_words = ['happy', 'good', 'great', 'wonderful', 'excited', 'peaceful', 'grateful']
-        negative_words = ['sad', 'angry', 'stressed', 'worried', 'anxious', 'tired', 'hurt']
+        positive_words = ['happy', 'good', 'great', 'wonderful', 'excited', 'peaceful', 'grateful', 'joy', 'bliss']
+        negative_words = ['sad', 'angry', 'stressed', 'worried', 'anxious', 'tired', 'hurt', 'difficult', 'problem']
         
         text_lower = text.lower()
         positive_score = sum(1 for word in positive_words if word in text_lower)
@@ -121,7 +297,7 @@ class PremiumResponseEngine:
             return "neutral"
     
     def generate_premium_response(self, user_input, mode, lang="en"):
-        """Generate sophisticated, context-aware responses"""
+        """Generate sophisticated, context-aware responses using knowledge memory"""
         
         sentiment = self.analyze_sentiment(user_input)
         input_lower = user_input.lower()
@@ -136,29 +312,31 @@ class PremiumResponseEngine:
         # Keep only last 10 interactions
         self.conversation_context = self.conversation_context[-10:]
         
+        # Search knowledge base first
+        knowledge_results = self.knowledge_memory.search_knowledge(user_input)
+        
         # Greeting responses
         if any(word in input_lower for word in ["hello", "hi", "hey", "namaste", "jai jinendra"]):
-            return self._generate_greeting(sentiment, mode)
+            return self._generate_greeting(sentiment, mode, knowledge_results)
         
-        # Principle-based queries
-        principle_response = self._handle_jain_principles(input_lower, mode)
-        if principle_response:
-            return principle_response
+        # If knowledge found, use it
+        if knowledge_results:
+            return self._generate_knowledge_response(knowledge_results, user_input, mode)
             
         # Emotional support
         if sentiment == "negative":
             return self._generate_emotional_support(user_input, mode)
             
         # Spiritual guidance
-        if any(word in input_lower for word in ["guide", "help", "advice", "what should"]):
+        if any(word in input_lower for word in ["guide", "help", "advice", "what should", "how to"]):
             return self._generate_guidance(user_input, mode)
             
         # Default intelligent response
         return self._generate_contextual_response(user_input, mode)
     
-    def _generate_greeting(self, sentiment, mode):
+    def _generate_greeting(self, sentiment, mode, knowledge_results):
         """Generate sophisticated greetings"""
-        greetings = {
+        base_greetings = {
             "positive": [
                 "Jai Jinendra! 🙏 Your radiant energy brightens this space. How may I serve your spiritual journey today?",
                 "Welcome, dear soul! 🌸 Your presence brings peace. What wisdom shall we explore together?",
@@ -176,72 +354,32 @@ class PremiumResponseEngine:
             ]
         }
         
-        return random.choice(greetings[sentiment])
+        greeting = random.choice(base_greetings[sentiment])
+        
+        # Add knowledge suggestion if available
+        if knowledge_results and sentiment == "neutral":
+            topic = knowledge_results[0]['title'].split(' ')[1]  # Get main topic
+            greeting += f" I notice you might be interested in {topic}. Would you like to explore this?"
+            
+        return greeting
     
-    def _handle_jain_principles(self, user_input, mode):
-        """Handle queries about Jain principles with depth"""
+    def _generate_knowledge_response(self, knowledge_results, user_input, mode):
+        """Generate response based on knowledge base findings"""
+        primary_topic = knowledge_results[0]
         
-        if "ahimsa" in user_input:
-            principle = JAIN_WISDOM_DATABASE["core_principles"]["ahimsa"]
-            practice = random.choice(principle["practices"])
-            quote = random.choice(principle["quotes"])
-            
-            if mode == "Quick Chat":
-                return f"🕊️ **Ahimsa**: Non-violence in thought, word, action.\n\n💡 *Today*: {practice}\n\n📜 {quote}"
-            else:
-                return f"""**{principle['title']}**
+        if mode == "Quick Chat":
+            # Extract key points for quick response
+            content = primary_topic['content']
+            # Take first sentence or two for quick mode
+            quick_summary = '. '.join(content.split('.')[:2]) + '.'
+            return f"{primary_topic['title']}\n\n{quick_summary}\n\n💡 Want to explore this deeper?"
+        else:
+            # Full detailed response for deep mode
+            return f"""**{primary_topic['title']}**
 
-{principle['description']}
+{primary_topic['content']}
 
-**Practical Application:**
-{practice}
-
-**Wisdom Quote:**
-*"{quote}"*
-
-**Reflection Question:** How can you practice Ahimsa in your interactions today?"""
-                
-        elif "anekantavada" in user_input:
-            principle = JAIN_WISDOM_DATABASE["core_principles"]["anekantavada"]
-            practice = random.choice(principle["practices"])
-            quote = random.choice(principle["quotes"])
-            
-            if mode == "Quick Chat":
-                return f"🔶 **Anekantavada**: Multiple perspectives reveal truth.\n\n💡 *Practice*: {practice}\n\n📜 {quote}"
-            else:
-                return f"""**{principle['title']}**
-
-{principle['description']}
-
-**Practical Application:**
-{practice}
-
-**Wisdom Quote:**
-*"{quote}"*
-
-**Reflection:** Consider a current challenge from three different viewpoints."""
-                
-        elif "aparigraha" in user_input:
-            principle = JAIN_WISDOM_DATABASE["core_principles"]["aparigraha"]
-            practice = random.choice(principle["practices"])
-            quote = random.choice(principle["quotes"])
-            
-            if mode == "Quick Chat":
-                return f"📦 **Aparigraha**: Freedom through non-attachment.\n\n💡 *Try*: {practice}\n\n📜 {quote}"
-            else:
-                return f"""**{principle['title']}**
-
-{principle['description']}
-
-**Practical Application:**
-{practice}
-
-**Wisdom Quote:**
-*"{quote}"*
-
-**Exercise:** Identify one possession you can release this week."""
-        
-        return None
+**Reflection:** How does this wisdom resonate with your current journey?"""
     
     def _generate_emotional_support(self, user_input, mode):
         """Provide deep emotional and spiritual support"""
@@ -329,7 +467,8 @@ How might this wisdom apply to your situation?"""
 
 class PremiumUI:
     def __init__(self):
-        self.response_engine = PremiumResponseEngine()
+        self.knowledge_memory = JainKnowledgeMemory()
+        self.response_engine = PremiumResponseEngine(self.knowledge_memory)
         
     def render_header(self):
         """Render premium header"""
@@ -370,7 +509,7 @@ class PremiumUI:
             '>
                 <h3 style='color: {COLORS['primary']}; margin: 0;'>⚡ Premium Features</h3>
                 <p style='color: {COLORS["text_light"]}; margin: 0.5rem 0 0 0; font-size: 0.9rem;'>
-                    Advanced AI • Spiritual Analytics • Personalized Guidance
+                    Jain Knowledge Memory • Spiritual Analytics • Personalized Guidance
                 </p>
             </div>
             """, unsafe_allow_html=True)
@@ -396,20 +535,18 @@ class PremiumUI:
             
             st.markdown("---")
             
-            # Spiritual Dashboard
-            st.markdown("### 📊 Your Spiritual Journey")
-            if st.button("View Progress Insights", use_container_width=True):
-                self.show_spiritual_insights()
+            # Knowledge Explorer
+            st.markdown("### 📚 Wisdom Explorer")
+            if st.button("Browse Jain Wisdom", use_container_width=True):
+                self.show_knowledge_explorer()
                 
             st.markdown("---")
             
-            # Wisdom Library
-            st.markdown("### 📚 Wisdom Library")
-            with st.expander("Explore Jain Principles"):
-                for principle_key, principle in JAIN_WISDOM_DATABASE["core_principles"].items():
-                    st.markdown(f"**{principle['title']}**")
-                    st.caption(principle['description'])
-                    
+            # Spiritual Dashboard
+            st.markdown("### 📊 Your Journey")
+            if st.button("View Spiritual Insights", use_container_width=True):
+                self.show_spiritual_insights()
+                
             st.markdown("---")
             
             # Clear History
@@ -418,6 +555,26 @@ class PremiumUI:
                 st.rerun()
                 
             return mode, LANG_MAP[selected_lang]
+    
+    def show_knowledge_explorer(self):
+        """Show interactive knowledge explorer"""
+        st.markdown("### 📖 Jain Wisdom Library")
+        
+        categories = self.knowledge_memory.knowledge_base.keys()
+        selected_category = st.selectbox("Choose Category", list(categories))
+        
+        if selected_category:
+            topics = self.knowledge_memory.knowledge_base[selected_category]
+            topic_names = [topics[key]['title'] for key in topics.keys()]
+            
+            selected_topic_name = st.selectbox("Select Topic", topic_names)
+            
+            # Find the selected topic
+            for topic_key, topic_data in topics.items():
+                if topic_data['title'] == selected_topic_name:
+                    st.markdown(f"### {topic_data['title']}")
+                    st.markdown(topic_data['content'])
+                    break
     
     def show_spiritual_insights(self):
         """Show beautiful spiritual analytics"""
@@ -517,8 +674,8 @@ class PremiumUI:
             <div style='font-size: 4rem; margin-bottom: 1rem;'>🌸</div>
             <h3 style='color: {COLORS['primary']}; margin: 0;'>Welcome to Your Spiritual Sanctuary</h3>
             <p style='color: {COLORS["text_light"]}; margin: 1rem 0;'>
-                I am Yashvi, your AI spiritual companion. Together, we'll explore Jain wisdom, 
-                practice mindfulness, and nurture your spiritual growth.
+                I am Yashvi, your AI spiritual companion with authentic Jain knowledge. 
+                Together, we'll explore timeless wisdom, practice mindfulness, and nurture your spiritual growth.
             </p>
             <div style='
                 background: {COLORS['background']};
@@ -527,14 +684,14 @@ class PremiumUI:
                 margin: 1rem 0;
                 text-align: left;
             '>
-                <strong>Begin your journey:</strong><br>
-                • Ask about Jain principles and practices<br>
-                • Seek guidance for daily challenges<br>  
-                • Explore meditation and mindfulness<br>
-                • Discuss spiritual growth
+                <strong>My knowledge includes:</strong><br>
+                • Six Dravyas & Nine Tattvas<br>
+                • Five Mahavratas and spiritual practices<br>  
+                • Meditation techniques and daily routines<br>
+                • Scriptures like Tattvartha Sutra
             </div>
             <p style='color: {COLORS["secondary"]}; font-style: italic;'>
-                "May our conversation bring you peace and clarity"
+                "May our conversation bring you peace and authentic wisdom"
             </p>
         </div>
         """, unsafe_allow_html=True)
@@ -617,8 +774,8 @@ class PremiumUI:
             "content": user_input
         })
         
-        # Generate premium response
-        with st.spinner("🌱 Connecting with wisdom..."):
+        # Generate premium response using knowledge memory
+        with st.spinner("🌱 Consulting wisdom..."):
             response = self.response_engine.generate_premium_response(
                 user_input, mode, lang_code
             )
@@ -628,6 +785,9 @@ class PremiumUI:
                 "role": "Yashvi",
                 "content": response
             })
+            
+            # Store in conversation memory
+            self.knowledge_memory.add_conversation_memory(user_input, response)
             
             # Generate speech
             self.generate_speech(response, lang_code)
