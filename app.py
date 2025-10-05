@@ -17,12 +17,17 @@ API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODE
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"
 
-# System instruction to define Yashvi's persona and knowledge domain
+# System instruction is updated to instruct the model to prioritize
+# document context (simulated RAG) and use web search (grounding) as a fallback.
 YASHVI_SYSTEM_INSTRUCTION = (
     "You are 'Yashvi', a compassionate and knowledgeable AI sister, embracing the Jain tradition. "
     "Your responses must be warm, supportive, and infused with Jain values like Ahimsa (non-violence), Anekantavada (non-absolutism), and Aparigraha (non-possessiveness). "
     "Use a friendly, caring, and respectful tone. Start your responses with 'Jai Jinendra 🙏' where appropriate. "
-    "You are knowledgeable about Jain philosophy, Tirthankaras, fasts (like Paryushan, Das Lakshana), and daily practices."
+    
+    # New instruction for knowledge prioritization:
+    "First, attempt to answer the user's question using any knowledge provided in the 'RAG_CONTEXT' section of the prompt (which simulates information retrieved from the AI-Yashvi documents). "
+    "If the RAG_CONTEXT is empty or insufficient, use the integrated Google Search to find relevant information about Jainism, current events, or general topics. "
+    
     "Maintain conversation context based on the provided chat history. Keep responses concise yet meaningful."
 )
 
@@ -35,15 +40,37 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+if "loading" not in st.session_state:
+    st.session_state.loading = False
+
 
 # ======================
 # CORE LLM FUNCTION (Gemini API Call with Backoff)
 # ======================
 def ask_yashvi(prompt, history):
-    """Generates a response using the Gemini API, maintaining conversation context."""
+    """Generates a response using the Gemini API, maintaining conversation context and enabling Google Search grounding."""
     st.session_state.loading = True
     
-    # Format chat history for the API call
+    # ----------------------------------------------------------------------
+    # 1. RAG / Document Retrieval Simulation (Placeholder)
+    # ----------------------------------------------------------------------
+    # In a full deployment, this is where you would:
+    # a) Load the FAISS/Vector Index built from the GitHub documents.
+    # b) Query the index with the 'prompt' to retrieve relevant text chunks.
+    # c) Concatenate those chunks into a variable like 'rag_context'.
+    
+    # For now, we leave it empty to demonstrate the structured prompt approach:
+    rag_context = "" 
+    
+    # Structure the user query to include the RAG context for the model to prioritize.
+    full_prompt_text = (
+        f"RAG_CONTEXT: {rag_context}\n\n"
+        f"USER QUERY: {prompt}"
+    )
+    
+    # ----------------------------------------------------------------------
+    # 2. Format Chat History
+    # ----------------------------------------------------------------------
     chat_history_parts = []
     for msg in history:
         # The user's role is 'user', the model's role is 'model'
@@ -53,15 +80,19 @@ def ask_yashvi(prompt, history):
             "parts": [{"text": msg["content"]}]
         })
     
-    # Add the current user prompt
+    # Add the current user prompt (modified to include RAG context)
     chat_history_parts.append({
         "role": "user",
-        "parts": [{"text": prompt}]
+        "parts": [{"text": full_prompt_text}]
     })
 
+    # ----------------------------------------------------------------------
+    # 3. Construct Payload with Google Search Grounding Tool
+    # ----------------------------------------------------------------------
     payload = {
         "contents": chat_history_parts,
         "systemInstruction": YASHVI_SYSTEM_INSTRUCTION,
+        "tools": [{ "google_search": {} }], # <-- ENABLE GOOGLE SEARCH GROUNDING
         "config": {
             "temperature": 0.7,
             "maxOutputTokens": 200
@@ -107,7 +138,7 @@ def ask_yashvi(prompt, history):
 
 
 # ======================
-# TTS FUNCTIONS
+# TTS FUNCTIONS (No changes needed)
 # ======================
 @st.cache_resource
 def speak_text(text, lang_code):
@@ -145,7 +176,7 @@ def autoplay_audio(b64_data):
 
 
 # ======================
-# STREAMLIT UI
+# STREAMLIT UI (No changes needed)
 # ======================
 
 # --- Login Check ---
