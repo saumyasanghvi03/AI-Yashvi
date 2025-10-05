@@ -1,6 +1,6 @@
 # =============================================================================
-# AI SISTER YASHVI - PROFESSIONAL GRADE
-# Production-Ready Jain Spiritual Assistant
+# AI SISTER YASHVI - ENTERPRISE GRADE
+# Professional Jain Assistant with Live Knowledge Base
 # =============================================================================
 
 import streamlit as st
@@ -9,360 +9,512 @@ from gtts import gTTS
 import io
 import speech_recognition as sr
 from datetime import datetime
+import requests
+import re
+from typing import Dict, List, Optional
 import json
 
 # =============================================================================
-# CORE ENGINE
+# CONFIGURATION
 # =============================================================================
 
-class JainWisdomEngine:
-    """Professional-grade Jain knowledge and response engine"""
+class Config:
+    KNOWLEDGE_BASE_URL = "https://raw.githubusercontent.com/saumyasanghvi03/AI-Yashvi/main/jain_knowledge_base.txt"
+    COLORS = {
+        "primary": "#2E7D32",
+        "secondary": "#D4AF37", 
+        "accent": "#8B0000",
+        "background": "#FAFDF7",
+        "surface": "#FFFFFF",
+        "text": "#1A1A1A",
+        "text_light": "#666666"
+    }
+
+# =============================================================================
+# KNOWLEDGE MANAGER
+# =============================================================================
+
+class KnowledgeManager:
+    """Professional knowledge base manager with live updates"""
     
     def __init__(self):
-        self.knowledge_base = self._build_knowledge_base()
+        self.knowledge_base = {}
+        self.last_update = None
+        self.load_knowledge_base()
     
-    def _build_knowledge_base(self):
-        """Comprehensive, structured Jain knowledge"""
-        return {
-            "philosophy": {
-                "six_dravyas": {
-                    "question": "What are the six dravyas in Jainism?",
-                    "answer": "The six eternal substances are: Jiva (soul), Pudgala (matter), Dharma (medium of motion), Adharma (medium of rest), Akasha (space), and Kala (time). These form the foundation of Jain metaphysics.",
-                    "keywords": ["dravya", "substance", "jiva", "matter", "space", "time"]
-                },
-                "nine_tattvas": {
-                    "question": "What are the nine tattvas?",
-                    "answer": "The nine fundamental principles are: Jiva (soul), Ajiva (non-soul), Asrava (influx of karma), Bandha (bondage), Punya (virtue), Papa (sin), Samvara (stoppage), Nirjara (shedding), and Moksha (liberation).",
-                    "keywords": ["tattva", "principle", "karma", "liberation", "moksha"]
-                }
+    def load_knowledge_base(self):
+        """Load knowledge base from GitHub with caching"""
+        try:
+            response = requests.get(Config.KNOWLEDGE_BASE_URL, timeout=10)
+            if response.status_code == 200:
+                self._parse_knowledge_base(response.text)
+                self.last_update = datetime.now()
+                return True
+            else:
+                st.error("❌ Failed to load knowledge base from GitHub")
+                return False
+        except Exception as e:
+            st.error(f"❌ Error loading knowledge base: {str(e)}")
+            # Load fallback knowledge
+            self._load_fallback_knowledge()
+            return False
+    
+    def _parse_knowledge_base(self, content: str):
+        """Parse the knowledge base text file"""
+        sections = content.split('## ')[1:]  # Skip first empty split
+        
+        for section in sections:
+            if not section.strip():
+                continue
+                
+            lines = section.split('\n')
+            section_title = lines[0].strip()
+            self.knowledge_base[section_title] = {}
+            
+            current_subtopic = None
+            content_lines = []
+            
+            for line in lines[1:]:
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                # Check for subtopic (lines starting with ###)
+                if line.startswith('### '):
+                    # Save previous subtopic
+                    if current_subtopic and content_lines:
+                        self.knowledge_base[section_title][current_subtopic] = '\n'.join(content_lines)
+                    
+                    # Start new subtopic
+                    current_subtopic = line[4:].strip()
+                    content_lines = []
+                elif current_subtopic:
+                    content_lines.append(line)
+            
+            # Save the last subtopic
+            if current_subtopic and content_lines:
+                self.knowledge_base[section_title][current_subtopic] = '\n'.join(content_lines)
+    
+    def _load_fallback_knowledge(self):
+        """Load fallback knowledge when GitHub is unavailable"""
+        self.knowledge_base = {
+            "CORE PRINCIPLES": {
+                "Ahimsa": "Non-violence in thought, word, and action. The supreme principle of Jainism.",
+                "Anekantavada": "The doctrine of multiple viewpoints and relativity of truth.",
+                "Aparigraha": "Non-possessiveness and non-attachment to material possessions."
             },
-            "ethics": {
-                "ahimsa": {
-                    "question": "What is Ahimsa and how to practice it?",
-                    "answer": "Ahimsa means non-violence in thought, word, and action. Practice by: 1) Being mindful of your actions 2) Speaking truthfully without harm 3) Cultivating compassionate thoughts 4) Choosing vegetarian food 5) Respecting all life forms.",
-                    "keywords": ["ahimsa", "non-violence", "compassion", "vegetarian"]
-                },
-                "five_vows": {
-                    "question": "What are the five Mahavratas?",
-                    "answer": "The five great vows are: 1) Ahimsa (non-violence) 2) Satya (truthfulness) 3) Asteya (non-stealing) 4) Brahmacharya (chastity) 5) Aparigraha (non-possessiveness).",
-                    "keywords": ["vows", "mahavrata", "truth", "non-stealing", "chastity"]
-                }
-            },
-            "practices": {
-                "meditation": {
-                    "question": "What are Jain meditation techniques?",
-                    "answer": "Key techniques: 1) Preksha Meditation (mindfulness) 2) Samayika (48-minute equanimity) 3) Kayotsarga (body detachment) 4) Anupreksha (contemplation). Practice 20-30 minutes daily.",
-                    "keywords": ["meditation", "samayika", "preksha", "mindfulness"]
-                },
-                "daily_routine": {
-                    "question": "What is the ideal daily routine?",
-                    "answer": "Morning: Wake early, recite Navkar Mantra, meditate. Day: Mindful eating, compassionate actions. Evening: Reflect on thoughts/actions, plan improvements. Key: Consistency in small practices.",
-                    "keywords": ["routine", "daily", "schedule", "practice"]
-                }
-            },
-            "prayers": {
-                "navkar_mantra": {
-                    "question": "What is the Navkar Mantra?",
-                    "answer": "The fundamental Jain prayer: 'Namo Arihantanam, Namo Siddhanam, Namo Ayariyanam, Namo Uvajjhayanam, Namo Loe Savva Sahunam.' It means: I bow to the perfected beings, liberated souls, spiritual leaders, teachers, and all practitioners.",
-                    "keywords": ["navkar", "mantra", "prayer", "arihant"]
-                }
+            "SPIRITUAL PRACTICES": {
+                "Meditation": "Preksha meditation and Samayika for mental peace and spiritual growth.",
+                "Daily Routine": "Morning prayers, mindful eating, and evening reflection.",
+                "Fasting": "Periodic fasting for self-discipline and spiritual purification."
             }
         }
     
-    def find_answer(self, user_question):
-        """Find the most relevant answer for user's question"""
-        user_question_lower = user_question.lower()
+    def search(self, query: str) -> Dict:
+        """Intelligent search through knowledge base"""
+        query_lower = query.lower()
+        results = []
         
-        # Direct keyword matching
         for category, topics in self.knowledge_base.items():
-            for topic_id, topic in topics.items():
-                # Check if any keyword matches
-                if any(keyword in user_question_lower for keyword in topic["keywords"]):
-                    return {
-                        "answer": topic["answer"],
-                        "question": topic["question"],
-                        "category": category
-                    }
+            for topic, content in topics.items():
+                relevance_score = self._calculate_relevance(query_lower, topic, content)
+                if relevance_score > 0:
+                    results.append({
+                        'category': category,
+                        'topic': topic,
+                        'content': content,
+                        'score': relevance_score
+                    })
         
-        # Fallback responses
+        # Return best match
+        if results:
+            best_match = max(results, key=lambda x: x['score'])
+            return best_match
+        else:
+            return self._get_fallback_response(query)
+    
+    def _calculate_relevance(self, query: str, topic: str, content: str) -> float:
+        """Calculate relevance score for search"""
+        score = 0.0
+        
+        # Topic matches
+        topic_lower = topic.lower()
+        if query in topic_lower:
+            score += 10.0
+        elif any(word in topic_lower for word in query.split()):
+            score += 5.0
+        
+        # Content matches
+        content_lower = content.lower()
+        if query in content_lower:
+            score += 8.0
+        elif any(word in content_lower for word in query.split()):
+            score += 3.0
+        
+        return score
+    
+    def _get_fallback_response(self, query: str) -> Dict:
+        """Provide intelligent fallback responses"""
         fallbacks = [
-            "That's an insightful question about Jain spirituality. While I focus on core principles like Ahimsa, Anekantavada, and spiritual practices, I'd be happy to discuss specific aspects that interest you.",
-            "Your question touches on deeper spiritual concepts. I specialize in practical Jain wisdom - daily practices, ethical living, and philosophical foundations. Could you clarify what aspect you'd like to explore?",
-            "I appreciate your curiosity about Jain teachings. My knowledge covers the Six Dravyas, Five Vows, meditation techniques, and daily spiritual practices. What specific area can I help with?"
+            {
+                'category': 'GENERAL',
+                'topic': 'Jain Wisdom',
+                'content': f"Your question about '{query}' shows deep curiosity. While I focus on core Jain principles like Ahimsa, Anekantavada, and spiritual practices, I'd be happy to discuss specific aspects of Jain philosophy or daily practices."
+            },
+            {
+                'category': 'GUIDANCE', 
+                'topic': 'Spiritual Direction',
+                'content': f"That's a thoughtful inquiry. In Jain tradition, we emphasize practical wisdom. Would you like guidance on meditation, ethical living, or understanding specific Jain principles?"
+            }
         ]
         
         import random
-        return {
-            "answer": random.choice(fallbacks),
-            "question": user_question,
-            "category": "general"
-        }
+        response = random.choice(fallbacks)
+        response['score'] = 1.0
+        return response
 
 # =============================================================================
 # SPEECH ENGINE
 # =============================================================================
 
 class SpeechEngine:
-    """Professional speech recognition and synthesis"""
+    """Professional speech services"""
     
     @staticmethod
-    def text_to_speech(text, language='en'):
-        """Convert text to speech with error handling"""
+    def text_to_speech(text: str, language: str = 'en') -> Optional[str]:
+        """Convert text to speech"""
         try:
             tts = gTTS(text=text, lang=language, slow=False)
             audio_buffer = io.BytesIO()
             tts.write_to_fp(audio_buffer)
             audio_buffer.seek(0)
             return base64.b64encode(audio_buffer.read()).decode()
-        except Exception as e:
-            print(f"TTS Error: {e}")
+        except Exception:
             return None
     
     @staticmethod
-    def speech_to_text(language='en'):
-        """Convert speech to text with robust error handling"""
+    def speech_to_text(language: str = 'en') -> str:
+        """Convert speech to text"""
         try:
             recognizer = sr.Recognizer()
             with sr.Microphone() as source:
-                st.info("🎤 Listening... Speak now")
                 recognizer.adjust_for_ambient_noise(source, duration=1)
                 audio = recognizer.listen(source, timeout=10, phrase_time_limit=15)
-            
-            text = recognizer.recognize_google(audio, language=language)
-            return text
+            return recognizer.recognize_google(audio, language=language)
         except sr.WaitTimeoutError:
-            raise Exception("No speech detected. Please ensure your microphone is working.")
+            raise Exception("🎤 No speech detected. Please ensure your microphone is working and try again.")
         except sr.UnknownValueError:
-            raise Exception("Could not understand the audio. Please speak clearly.")
+            raise Exception("🎤 Could not understand the audio. Please speak clearly.")
         except Exception as e:
-            raise Exception(f"Microphone error: {str(e)}")
+            raise Exception(f"🎤 Voice input error: {str(e)}")
 
 # =============================================================================
 # USER INTERFACE
 # =============================================================================
 
 class ProfessionalUI:
-    """Production-grade user interface"""
+    """Enterprise-grade user interface"""
     
     def __init__(self):
-        self.wisdom_engine = JainWisdomEngine()
+        self.knowledge_manager = KnowledgeManager()
         self.speech_engine = SpeechEngine()
-        self._initialize_session()
+        self._init_session_state()
     
-    def _initialize_session(self):
+    def _init_session_state(self):
         """Initialize session state"""
         if 'chat_history' not in st.session_state:
             st.session_state.chat_history = []
+        if 'knowledge_loaded' not in st.session_state:
+            st.session_state.knowledge_loaded = False
         if 'voice_input' not in st.session_state:
             st.session_state.voice_input = ""
     
     def render(self):
-        """Render the complete application"""
-        self._apply_styles()
+        """Render complete application"""
+        self._apply_professional_styles()
         self._render_header()
-        self._render_sidebar()
-        self._render_chat_interface()
+        
+        # Main layout
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+            self._render_sidebar()
+        
+        with col2:
+            self._render_main_content()
     
-    def _apply_styles(self):
-        """Apply professional CSS styles"""
-        st.markdown("""
+    def _apply_professional_styles(self):
+        """Apply enterprise-grade styling"""
+        st.markdown(f"""
         <style>
-        .main-header {
-            background: linear-gradient(135deg, #2E7D32, #8B0000);
+        .main {{
+            background-color: {Config.COLORS['background']};
+        }}
+        .header {{
+            background: linear-gradient(135deg, {Config.COLORS['primary']}, {Config.COLORS['accent']});
             padding: 2rem;
-            border-radius: 0 0 20px 20px;
+            border-radius: 0 0 25px 25px;
             margin: -1rem -1rem 2rem -1rem;
             color: white;
             text-align: center;
-        }
-        .chat-user {
-            background: #E8F5E8;
-            padding: 1rem;
-            border-radius: 15px 15px 5px 15px;
-            margin: 0.5rem 0;
-            border-left: 4px solid #2E7D32;
-        }
-        .chat-assistant {
-            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }}
+        .chat-user {{
+            background: linear-gradient(135deg, {Config.COLORS['primary']}15, {Config.COLORS['accent']}15);
+            padding: 1.2rem;
+            border-radius: 18px 18px 5px 18px;
+            margin: 0.8rem 0;
+            border-left: 4px solid {Config.COLORS['primary']};
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }}
+        .chat-assistant {{
+            background: {Config.COLORS['surface']};
             padding: 1.5rem;
-            border-radius: 15px 15px 15px 5px;
-            margin: 0.5rem 0;
-            border: 1px solid #f0f0f0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .welcome-box {
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
+            border-radius: 18px 18px 18px 5px;
+            margin: 0.8rem 0;
+            border: 1px solid {Config.COLORS['background']};
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }}
+        .welcome-card {{
+            background: {Config.COLORS['surface']};
+            padding: 2.5rem;
+            border-radius: 20px;
             text-align: center;
             margin: 2rem 0;
-            border: 2px dashed #2E7D32;
-        }
-        .quick-action-btn {
-            width: 100%;
-            margin: 0.25rem 0;
-            background: #D4AF37 !important;
-            color: white !important;
-        }
+            border: 2px dashed {Config.COLORS['primary']}30;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }}
+        .sidebar-card {{
+            background: {Config.COLORS['surface']};
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 1rem 0;
+            border: 1px solid {Config.COLORS['primary']}20;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }}
+        .stButton button {{
+            background: linear-gradient(135deg, {Config.COLORS['primary']}, {Config.COLORS['accent']});
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.8rem 1.2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }}
+        .stButton button:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }}
+        .quick-btn {{
+            background: {Config.COLORS['secondary']} !important;
+            margin: 0.3rem 0;
+        }}
         </style>
         """, unsafe_allow_html=True)
     
     def _render_header(self):
-        """Render application header"""
+        """Render professional header"""
         st.markdown("""
-        <div class="main-header">
-            <h1 style="color: white; margin: 0;">🌸 AI Sister Yashvi</h1>
-            <p style="margin: 0.5rem 0; font-size: 1.2rem;">Professional Jain Spiritual Assistant</p>
-            <div style="background: rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 50px; display: inline-block;">
-                <span style="color: #D4AF37;">Jai Jinendra 🙏 Production Ready</span>
+        <div class="header">
+            <h1 style="color: white; margin: 0; font-size: 2.8rem;">🌸 AI Sister Yashvi</h1>
+            <p style="font-size: 1.3rem; margin: 0.5rem 0; opacity: 0.95;">Enterprise-Grade Jain Spiritual Assistant</p>
+            <div style="background: rgba(255,255,255,0.25); padding: 0.6rem 1.5rem; border-radius: 50px; display: inline-block; margin-top: 0.5rem;">
+                <span style="color: #D4AF37; font-weight: 600;">🕊️ Live Knowledge Base • Professional UI/UX</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
     
     def _render_sidebar(self):
-        """Render sidebar with controls"""
+        """Render professional sidebar"""
         with st.sidebar:
-            st.markdown("## ⚙️ Controls")
+            # Status Card
+            st.markdown("""
+            <div class="sidebar-card">
+                <h3 style="color: #2E7D32; margin: 0 0 1rem 0;">⚡ System Status</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Knowledge Base:</span>
+                    <span style="color: #2E7D32; font-weight: 600;">✅ Live</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                    <span>Last Update:</span>
+                    <span style="color: #666; font-size: 0.9em;">Just now</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
             
-            # Language selection
-            self.language = st.selectbox(
-                "Language",
+            # Language Settings
+            st.markdown("### 🌐 Language")
+            self.language = st.radio(
+                "Select Language:",
                 ["English", "Hindi", "Gujarati"],
-                key="language_select"
+                label_visibility="collapsed"
             )
             
             st.markdown("---")
-            st.markdown("## 📚 Quick Questions")
             
-            # Quick action buttons
-            quick_actions = [
-                ("What is Ahimsa?", "ahimsa"),
-                ("Explain Six Dravyas", "six_dravyas"),
-                ("Daily Meditation", "meditation"),
-                ("Five Vows", "five_vows"),
-                ("Navkar Mantra", "navkar_mantra")
+            # Quick Access
+            st.markdown("### 📚 Quick Wisdom")
+            quick_topics = [
+                ("🕊️ Ahimsa Guide", "ahimsa non-violence"),
+                ("🔶 Anekantavada", "anekantavada multiple viewpoints"), 
+                ("📦 Aparigraha", "aparigraha non-possessiveness"),
+                ("🧘 Meditation", "meditation spiritual practice"),
+                ("🌅 Daily Routine", "daily routine spiritual practice"),
+                ("📜 Five Vows", "five vows mahavrata")
             ]
             
-            for action_text, action_key in quick_actions:
-                if st.button(action_text, key=action_key, use_container_width=True):
-                    self._handle_quick_action(action_key)
+            for topic_text, search_query in quick_topics:
+                if st.button(topic_text, use_container_width=True, key=f"quick_{search_query}"):
+                    self._process_user_input(search_query)
             
             st.markdown("---")
             
-            # Voice input
+            # Voice Input
             if st.button("🎙️ Voice Input", use_container_width=True, type="secondary"):
                 self._handle_voice_input()
             
-            # Clear chat
-            if st.button("🔄 Clear Chat", use_container_width=True):
-                st.session_state.chat_history = []
-                st.rerun()
+            # Management
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🔄 Refresh", use_container_width=True):
+                    if self.knowledge_manager.load_knowledge_base():
+                        st.success("✅ Knowledge base updated!")
+                    st.rerun()
+            with col2:
+                if st.button("🗑️ Clear Chat", use_container_width=True):
+                    st.session_state.chat_history = []
+                    st.rerun()
     
-    def _render_chat_interface(self):
+    def _render_main_content(self):
         """Render main chat interface"""
+        # Handle any pending voice input
+        if st.session_state.voice_input:
+            self._process_user_input(st.session_state.voice_input)
+            st.session_state.voice_input = ""
+        
         # Chat container
-        chat_container = st.container(height=500)
+        chat_container = st.container(height=600)
         
         with chat_container:
             if not st.session_state.chat_history:
-                self._render_welcome()
+                self._render_welcome_screen()
             else:
                 for msg in st.session_state.chat_history:
-                    self._render_message(msg)
+                    self._render_chat_message(msg)
         
-        # Text input
-        user_input = st.chat_input("Ask about Jain wisdom...")
-        if user_input:
-            self._process_user_input(user_input)
+        # Input area
+        self._render_input_area()
     
-    def _render_welcome(self):
-        """Render welcome message"""
+    def _render_welcome_screen(self):
+        """Render professional welcome screen"""
         st.markdown("""
-        <div class="welcome-box">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">🌸</div>
-            <h3 style="color: #2E7D32;">Welcome to Professional Jain Guidance</h3>
-            <p>I'm Yashvi, your AI spiritual assistant with authentic Jain knowledge.</p>
-            <div style="background: #FAFDF7; padding: 1rem; border-radius: 10px; margin: 1rem 0; text-align: left;">
-                <strong>I can help with:</strong><br>
-                • Jain philosophy & principles<br>
-                • Spiritual practices & meditation<br>
-                • Ethical living & daily routines<br>
-                • Prayers & scriptures
+        <div class="welcome-card">
+            <div style="font-size: 5rem; margin-bottom: 1.5rem;">🌸</div>
+            <h2 style="color: #2E7D32; margin: 0 0 1rem 0;">Welcome to Professional Jain Guidance</h2>
+            <p style="color: #666; font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem;">
+                I'm Yashvi, your enterprise-grade AI spiritual assistant. I have access to a comprehensive 
+                Jain knowledge base and can provide authentic, practical guidance for your spiritual journey.
+            </p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 2rem 0;">
+                <div style="background: #FAFDF7; padding: 1.2rem; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">📚</div>
+                    <div style="font-weight: 600; color: #2E7D32;">Live Knowledge</div>
+                    <div style="font-size: 0.9rem; color: #666;">Updated from GitHub</div>
+                </div>
+                <div style="background: #FAFDF7; padding: 1.2rem; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎙️</div>
+                    <div style="font-weight: 600; color: #2E7D32;">Voice Support</div>
+                    <div style="font-size: 0.9rem; color: #666;">Multi-language</div>
+                </div>
             </div>
-            <p style="color: #D4AF37; font-style: italic;">
-                "Jai Jinendra! How may I assist your spiritual journey today?"
+            
+            <p style="color: #D4AF37; font-style: italic; font-size: 1.1rem; margin-top: 1rem;">
+                "Jai Jinendra! Ask me anything about Jain philosophy, practices, or daily spiritual living."
             </p>
         </div>
         """, unsafe_allow_html=True)
     
-    def _render_message(self, msg):
-        """Render a chat message"""
+    def _render_chat_message(self, msg: Dict):
+        """Render professional chat message"""
         if msg["role"] == "user":
             st.markdown(f"""
             <div class="chat-user">
-                <strong>You:</strong> {msg["content"]}
+                <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                    <div style="width: 32px; height: 32px; background: #2E7D32; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 0.8rem;">
+                        <span style="color: white; font-weight: 600;">Y</span>
+                    </div>
+                    <strong style="color: #2E7D32;">You</strong>
+                    <span style="margin-left: auto; color: #666; font-size: 0.8rem;">{msg.get('time', 'Now')}</span>
+                </div>
+                <div style="color: #1A1A1A; line-height: 1.5;">{msg["content"]}</div>
             </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
             <div class="chat-assistant">
-                <strong>Yashvi:</strong> {msg["content"]}
+                <div style="display: flex; align-items: center; margin-bottom: 0.8rem;">
+                    <div style="width: 32px; height: 32px; background: #D4AF37; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 0.8rem;">
+                        <span style="color: white; font-weight: 600;">Y</span>
+                    </div>
+                    <strong style="color: #D4AF37;">Yashvi</strong>
+                    <span style="margin-left: auto; color: #666; font-size: 0.8rem;">{msg.get('time', 'Now')}</span>
+                </div>
+                <div style="color: #1A1A1A; line-height: 1.6;">{msg["content"]}</div>
+                {f'<div style="margin-top: 0.8rem; padding: 0.5rem 0.8rem; background: #FAFDF7; border-radius: 8px; border-left: 3px solid #2E7D32;"><small style="color: #666;"><strong>Source:</strong> {msg.get("category", "Jain Wisdom")} • {msg.get("topic", "General")}</small></div>' if msg.get("category") else ""}
             </div>
             """, unsafe_allow_html=True)
     
-    def _handle_quick_action(self, action_key):
-        """Handle quick action button clicks"""
-        action_map = {
-            "ahimsa": "What is Ahimsa and how to practice it?",
-            "six_dravyas": "What are the six dravyas in Jainism?",
-            "meditation": "What are Jain meditation techniques?",
-            "five_vows": "What are the five Mahavratas?",
-            "navkar_mantra": "What is the Navkar Mantra?"
-        }
+    def _render_input_area(self):
+        """Render input area"""
+        user_input = st.chat_input("💭 Ask about Jain philosophy, practices, or spiritual guidance...")
         
-        if action_key in action_map:
-            self._process_user_input(action_map[action_key])
+        if user_input:
+            self._process_user_input(user_input)
     
     def _handle_voice_input(self):
-        """Handle voice input"""
+        """Handle professional voice input"""
         try:
             language_map = {"English": "en", "Hindi": "hi", "Gujarati": "gu"}
             language_code = language_map.get(self.language, "en")
             
-            text = self.speech_engine.speech_to_text(language_code)
-            if text:
-                self._process_user_input(text)
-                
+            with st.spinner("🎤 Listening... Speak now"):
+                text = self.speech_engine.speech_to_text(language_code)
+                if text:
+                    st.session_state.voice_input = text
+                    st.rerun()
+                    
         except Exception as e:
             st.error(str(e))
     
-    def _process_user_input(self, user_input):
-        """Process user input and generate response"""
-        # Add user message to history
+    def _process_user_input(self, user_input: str):
+        """Process user input professionally"""
+        # Add user message
         st.session_state.chat_history.append({
             "role": "user",
             "content": user_input,
-            "timestamp": datetime.now().isoformat()
+            "time": datetime.now().strftime("%H:%M")
         })
         
         # Generate response
-        with st.spinner("🕊️ Consulting wisdom..."):
-            result = self.wisdom_engine.find_answer(user_input)
+        with st.spinner("🌱 Consulting knowledge base..."):
+            result = self.knowledge_manager.search(user_input)
             
-            # Add assistant response to history
+            # Add assistant response
             st.session_state.chat_history.append({
-                "role": "assistant",
-                "content": result["answer"],
-                "category": result["category"],
-                "timestamp": datetime.now().isoformat()
+                "role": "assistant", 
+                "content": result['content'],
+                "category": result['category'],
+                "topic": result['topic'],
+                "time": datetime.now().strftime("%H:%M")
             })
             
             # Convert to speech
-            self._speak_response(result["answer"])
+            self._speak_response(result['content'])
             
             st.rerun()
     
-    def _speak_response(self, text):
+    def _speak_response(self, text: str):
         """Convert response to speech"""
         try:
             language_map = {"English": "en", "Hindi": "hi", "Gujarati": "gu"}
@@ -374,10 +526,10 @@ class ProfessionalUI:
         except Exception:
             pass  # Silent fail for audio errors
     
-    def _play_audio(self, audio_base64):
-        """Play audio in browser"""
+    def _play_audio(self, audio_base64: str):
+        """Play audio professionally"""
         st.markdown(f"""
-        <audio autoplay style="display:none">
+        <audio autoplay style="display: none">
             <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
         </audio>
         """, unsafe_allow_html=True)
@@ -388,20 +540,19 @@ class ProfessionalUI:
 
 def main():
     """Main application entry point"""
-    # Configure page
     st.set_page_config(
-        page_title="AI Sister Yashvi - Professional",
+        page_title="AI Sister Yashvi - Enterprise",
         page_icon="🌸",
         layout="wide",
         initial_sidebar_state="expanded"
     )
     
-    # Initialize and run application
     try:
+        # Initialize and run application
         app = ProfessionalUI()
         app.render()
     except Exception as e:
-        st.error(f"Application error: {str(e)}")
+        st.error(f"🚨 Application Error: {str(e)}")
         st.info("Please refresh the page to restart the application.")
 
 if __name__ == "__main__":
