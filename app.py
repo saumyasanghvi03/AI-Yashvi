@@ -1,26 +1,28 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import requests
+# ==============================================================================
+# AI SISTER YASHVI - STREAMLIT SINGLE-FILE APPLICATION
+# Features: Chat (Gemini), Multi-lingual TTS (gTTS), Image Generation (Imagen)
+# ==============================================================================
+
+import streamlit as st
+import os
 import json
 import time
 import base64
 from gtts import gTTS
 import io
+import requests
 
 # ======================
 # CONFIGURATION
 # ======================
-app = FastAPI(title="Yashvi AI Multimedia Backend")
 
-# NOTE: API_KEY is left empty. The environment must provide this secret 
-# during deployment (e.g., via Colab secrets or a hosting platform).
-API_KEY = "" 
-# Gemini for Chat/LLM
+# Admin credentials (for simple login gate)
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "admin123"
+
+# Gemini API Configuration
 GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
-GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={API_KEY}"
-# Imagen for Image Generation
-IMAGEN_MODEL = "imagen-3.0-generate-002"
-IMAGEN_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{IMAGEN_MODEL}:predict?key={API_KEY}"
+IMAGE_MODEL = "imagen-3.0-generate-002"
 
 YASHVI_SYSTEM_INSTRUCTION = (
     "You are 'Yashvi', a compassionate and knowledgeable AI sister, embracing the Jain tradition. "
@@ -31,33 +33,91 @@ YASHVI_SYSTEM_INSTRUCTION = (
     "Maintain conversation context based on the provided chat history. Keep responses concise yet meaningful."
 )
 
-# ======================
-# PYDANTIC SCHEMAS
-# ======================
-class ChatRequest(BaseModel):
-    """Schema for the incoming chat request from the Streamlit frontend."""
-    prompt: str
-    history: list 
-    
-class TTSRequest(BaseModel):
-    """Schema for the incoming TTS request."""
-    text: str
-    lang_code: str
-
-class ImageRequest(BaseModel):
-    """Schema for the incoming Image Generation request."""
-    prompt: str
+# Language Mapping for gTTS
+LANG_MAP = {
+    "English": "en",
+    "Hindi": "hi",
+    "Gujarati": "gu"
+}
 
 # ======================
-# CORE PROCESSING FUNCTIONS
+# API KEY & AUTH CHECK
 # ======================
 
-# --- LLM CHAT ---
-def ask_yashvi(prompt, history):
-    """Generates a response using the Gemini API, maintaining conversation context and enabling Google Search grounding."""
+# Load API key securely from st.secrets
+try:
+    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+except KeyError:
+    st.error("🚨 Gemini API Key not found!")
+    st.markdown("Please add your key to `.streamlit/secrets.toml`:\n\n```toml\nGEMINI_API_KEY = \"YOUR_KEY_HERE\"\n```")
+    st.stop()
+
+# Base URL for API calls
+GEMINI_CHAT_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+GEMINI_IMAGE_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{IMAGE_MODEL}:predict?key={GEMINI_API_KEY}"
+
+
+# ======================
+# HELPER FUNCTIONS
+# ======================
+
+def autoplay_audio(audio_base64_data):
+    """Embeds and autoplays base64-encoded audio data."""
+    md = f"""
+    <audio controls autoplay style="display:none">
+    <source src="data:audio/mp3;base64,{audio_base64_data}" type="audio/mp3">
+    </audio>
+    """
+    st.markdown(md, unsafe_allow_html=True)
+
+
+@st.cache_data(show_spinner=False)
+def get_tts_base64(text: str, lang_code: str) -> str:
+    """Converts text to speech using gTTS and returns base64 encoded audio."""
+    try:
+        mp3_fp = io.BytesIO()
+        # Using tld="co.in" for better Indian language support as requested in original prompt
+        tts = gTTS(text=text, lang=lang_code, tld="co.in") 
+        tts.write_to_fp(mp3_fp)
+        mp3_fp.seek(0)
+        return base64.b64encode(mp3_fp.read()).decode()
+    except Exception as e:
+        st.error(f"TTS failed for language code '{lang_code}': {e}")
+        return ""
+
+
+def call_gemini_api(payload: dict, url: str) -> requests.Response:
+    """Handles API call with exponential backoff."""
+    max_retries = 5
+    for i in range(max_retries):
+        try:
+            response = requests.post(
+                url,
+                headers={'Content-Type': 'application/json'},
+                data=json.dumps(payload),
+                timeout=60 # Extended timeout for LLM/Image calls
+            )
+            response.raise_for_status()
+            return response
+        except requests.exceptions.RequestException as e:
+            if i < max_retries - 1:
+                wait_time = 2 ** i
+                time.sleep(wait_time)
+            else:
+                st.exception(f"API failed after multiple retries: {e}")
+                st.error("Service is currently unavailable. Please try again later.")
+                st.stop()
+    return response # Should be unreachable
+
+# ======================
+# LLM FUNCTIONS
+# ======================
+
+def ask_yashvi(prompt: str, history: list) -> str:
+    """Generates a response using the Gemini API."""
     
     # 1. RAG / Document Retrieval Simulation (Placeholder)
-    rag_context = "" 
+    rag_context = "Your knowledge base is based on the Jain principles of Ahimsa, Satya, and Aparigraha." 
     full_prompt_text = (
         f"RAG_CONTEXT: {rag_context}\n\n"
         f"USER QUERY: {prompt}"
@@ -66,7 +126,6 @@ def ask_yashvi(prompt, history):
     # 2. Format Chat History
     chat_history_parts = []
     for msg in history:
-        # Standardize role names for the API
         role = "user" if msg["role"] == "User" else "model"
         chat_history_parts.append({
             "role": role, 
@@ -88,119 +147,146 @@ def ask_yashvi(prompt, history):
             "maxOutputTokens": 200
         }
     }
-
-    response = None
-    max_retries = 5
-    for i in range(max_retries):
-        try:
-            response = requests.post(
-                GEMINI_API_URL,
-                headers={'Content-Type': 'application/json'},
-                data=json.dumps(payload),
-                timeout=30 
-            )
-            response.raise_for_status()
-            break
-        except requests.exceptions.RequestException as e:
-            if i < max_retries - 1:
-                wait_time = 2 ** i
-                time.sleep(wait_time)
-            else:
-                raise HTTPException(status_code=500, detail=f"LLM API failed after multiple retries: {e}")
-
-    if response and response.status_code == 200:
-        result = response.json()
-        try:
-            text = result['candidates'][0]['content']['parts'][0]['text']
-            return text
-        except (KeyError, IndexError):
-            raise HTTPException(status_code=500, detail="LLM returned an empty or malformed response.")
     
-    raise HTTPException(status_code=500, detail="Unknown error during LLM request.")
+    with st.spinner("Yashvi is thinking..."):
+        response = call_gemini_api(payload, GEMINI_CHAT_URL)
 
-# --- TEXT TO SPEECH (TTS) ---
-def speak_text(text, lang_code):
-    """Converts text to speech using gTTS and returns base64 encoded audio."""
+    result = response.json()
     try:
-        mp3_fp = io.BytesIO()
-        # Using tld="co.in" for a specific Indian accent, suitable for multi-lingual Hindi/Gujarati context
-        tts = gTTS(text=text, lang=lang_code, tld="co.in") 
-        tts.write_to_fp(mp3_fp)
-        mp3_fp.seek(0)
-        data = mp3_fp.read()
-        b64 = base64.b64encode(data).decode()
-        return b64
+        text = result['candidates'][0]['content']['parts'][0]['text']
+        return text
+    except (KeyError, IndexError):
+        st.error("LLM returned an empty or malformed response.")
+        return "I'm sorry, I encountered an error trying to formulate a response."
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"TTS processing failed: {e}. Check language code support.")
 
-# --- IMAGE GENERATION ---
-def generate_image(prompt):
-    """Generates an image using the Imagen 3.0 API and returns base64 encoded PNG data."""
+def generate_image(prompt: str) -> str:
+    """Generates an image using the Imagen API and returns a base64 encoded image URL."""
     
-    # 1. Construct Payload
+    # Payload for Imagen
     payload = {
         "instances": {
-            "prompt": prompt,
-            "imageSize": "1024x1024" # Optimal size for quality
+            "prompt": f"A beautiful, peaceful image representing the Jain concept of '{prompt}'. Ensure the style is warm and aesthetic. Watercolor style.",
+            "aspectRatio": "1:1"
         },
         "parameters": {
             "sampleCount": 1
         }
     }
 
-    response = None
-    max_retries = 5
-    for i in range(max_retries):
-        try:
-            response = requests.post(
-                IMAGEN_API_URL,
-                headers={'Content-Type': 'application/json'},
-                data=json.dumps(payload),
-                timeout=60 # Image generation requires a longer timeout
-            )
-            response.raise_for_status()
-            break
-        except requests.exceptions.RequestException as e:
-            if i < max_retries - 1:
-                wait_time = 4 ** i # Longer backoff for image gen
-                time.sleep(wait_time)
-            else:
-                raise HTTPException(status_code=500, detail=f"Image API failed after multiple retries: {e}")
+    with st.spinner("Yashvi is visualizing..."):
+        response = call_gemini_api(payload, GEMINI_IMAGE_URL)
+        
+    result = response.json()
+    try:
+        b64_data = result['predictions'][0]['bytesBase64Encoded']
+        return f"data:image/png;base64,{b64_data}"
+    except (KeyError, IndexError):
+        st.error("Image generation failed.")
+        return ""
 
-    if response and response.status_code == 200:
-        result = response.json()
-        try:
-            # The base64 image data is found in the prediction bytes
-            base64_data = result['predictions'][0]['bytesBase64Encoded']
-            return base64_data
-        except (KeyError, IndexError):
-            raise HTTPException(status_code=500, detail="Image API returned an empty or malformed response.")
+# ======================
+# STREAMLIT UI SETUP
+# ======================
+
+st.set_page_config(page_title="AI Sister Yashvi 💖", layout="centered", initial_sidebar_state="expanded")
+
+# --- Initialize Session State ---
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "image_prompt" not in st.session_state:
+    st.session_state.image_prompt = ""
+
+# --- Login Gate ---
+if not st.session_state.logged_in:
+    st.title("🔐 Login to Yashvi’s World")
+    st.markdown("Enter the admin credentials to access the app.")
     
-    raise HTTPException(status_code=500, detail="Unknown error during Image API request.")
+    with st.form("login_form"):
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Login")
 
-# ======================
-# API ENDPOINTS
-# ======================
-@app.get("/")
-def read_root():
-    """Health check endpoint."""
-    return {"status": "Yashvi AI Multimedia Backend is operational. Endpoints: /chat, /tts, /image"}
+        if submitted:
+            if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+                st.session_state.logged_in = True
+                st.success("Welcome back, Saumya bhai! 💖 Please refresh to continue.")
+                st.experimental_rerun() # Force a rerun after successful login
+            else:
+                st.error("Invalid credentials")
+    st.stop()
 
-@app.post("/chat")
-def chat_endpoint(request: ChatRequest):
-    """Endpoint for generating multi-lingual chat responses via Gemini."""
-    response_text = ask_yashvi(request.prompt, request.history)
-    return {"response": response_text}
 
-@app.post("/tts")
-def tts_endpoint(request: TTSRequest):
-    """Endpoint for generating base64 encoded audio (English, Hindi, Gujarati)."""
-    b64_audio = speak_text(request.text, request.lang_code)
-    return {"audio_base64": b64_audio}
+# --- Main App Interface ---
+st.title("🌸 Your AI Sister Yashvi 🌸")
+st.write("Jai Jinendra 🙏 I'm Yashvi, your Jain sister. I’m here to listen, care, and talk with you 💖")
+st.markdown("---")
 
-@app.post("/image")
-def image_endpoint(request: ImageRequest):
-    """Endpoint for generating an image from a prompt via Imagen."""
-    b64_image = generate_image(request.prompt)
-    return {"image_base64": b64_image}
+# --- Sidebar Configuration ---
+with st.sidebar:
+    st.header("Settings")
+    
+    # Language Selection
+    selected_lang = st.selectbox("Choose Language for TTS:", list(LANG_MAP.keys()))
+    lang_code = LANG_MAP[selected_lang]
+    st.caption(f"TTS language code: `{lang_code}`")
+
+    st.markdown("---")
+    
+    # Image Generation Section
+    st.subheader("Image Generator")
+    st.session_state.image_prompt = st.text_area("Image Idea (e.g., 'A peaceful Tirthankara meditating')", height=100, key="image_prompt_input")
+    
+    if st.button("✨ Generate Image"):
+        if st.session_state.image_prompt:
+            image_url = generate_image(st.session_state.image_prompt)
+            if image_url:
+                st.image(image_url, caption=f"Yashvi's Visualization: {st.session_state.image_prompt}")
+        else:
+            st.warning("Please enter an idea for the image.")
+
+    st.markdown("---")
+
+    if st.button("🔄 Clear Chat History"):
+        st.session_state.chat_history = []
+        st.success("Chat history cleared!")
+
+
+# --- Chat Interface ---
+
+# Display chat history
+chat_container = st.container(height=400, border=True)
+with chat_container:
+    if not st.session_state.chat_history:
+        st.info("Start the conversation! Ask Yashvi about Jainism, life advice, or share your day.")
+    
+    for msg in st.session_state.chat_history:
+        with st.chat_message(msg["role"].lower()):
+            st.markdown(msg["content"])
+
+
+# Handle user input
+user_input = st.chat_input("📝 Type your message here...")
+
+if user_input:
+    # 1. Add user message to history and display
+    st.session_state.chat_history.append({"role": "User", "content": user_input})
+    with chat_container:
+        with st.chat_message("user"):
+            st.markdown(user_input)
+    
+    # 2. Generate response
+    response_text = ask_yashvi(user_input, st.session_state.chat_history)
+    
+    # 3. Add AI response to history and display
+    st.session_state.chat_history.append({"role": "Yashvi", "content": response_text})
+    with chat_container:
+        with st.chat_message("assistant"):
+            st.markdown(response_text)
+    
+    # 4. Generate and autoplay audio
+    audio_b64 = get_tts_base64(response_text, lang_code)
+    if audio_b64:
+        autoplay_audio(audio_b64)
