@@ -1,6 +1,6 @@
 # ==============================================================================
-# AI SISTER YASHVI - STREAMLIT SINGLE-FILE APPLICATION (V6 - Final & Corrected)
-# Features: Chat (Streaming), Multi-lingual TTS/STT, Image Generation, Dynamic Persona
+# AI SISTER YASHVI - STREAMLIT SINGLE-FILE APPLICATION (V7 - Jain Optimized)
+# Features: Chat (Streaming), Multi-lingual TTS/STT, Dynamic Persona
 # ==============================================================================
 
 import streamlit as st
@@ -18,9 +18,7 @@ import speech_recognition as sr
 # ======================
 
 # Gemini API Configuration
-# Using the PRO model for advanced reasoning and instruction adherence
 GEMINI_MODEL = "gemini-2.5-pro-preview-05-20" 
-IMAGE_MODEL = "imagen-3.0-generate-002"
 
 # Language Mapping for gTTS and STT (Speech Recognition)
 LANG_MAP = {
@@ -38,19 +36,20 @@ def get_system_instruction(mode: str) -> str:
     base_instruction = (
         "You are 'Yashvi', a compassionate and knowledgeable AI sister, embracing the Jain tradition. "
         "You are part of a digital sanctuary built **by Jains for the Jain community and spiritual seekers**. " 
-        "Your responses must be warm, supportive, and infused with Jain values like Ahimsa, Anekantavada, and Aparigraha. "
+        "Your responses must be warm, supportive, and infused with Jain values like Ahimsa (non-violence), Anekantavada (multiple viewpoints), and Aparigraha (non-possessiveness). "
         "Use a friendly, caring, and respectful tone. Start your responses with 'Jai Jinendra 🙏' where appropriate. "
+        "When discussing Jain principles, provide practical guidance for daily life while respecting different interpretations."
     )
     
     if mode == "Quick Chat (Youth) 💬":
         # Concise, modern language for Gen Z
         style_instruction = (
-            "Be extremely concise, use modern, Gen Z-friendly language (like abbreviations, short sentences, and relevant emojis), and focus on quick emotional support or direct answers. Keep paragraphs short (1-2 sentences)."
+            "Be extremely concise, use modern, Gen Z-friendly language (like short sentences and relevant emojis), and focus on quick emotional support or direct answers. Keep paragraphs short (1-2 sentences)."
         )
     else: # Deep Dive (Elders/Learners) 🧘‍♀️
         # Clear, detailed language for Elders
         style_instruction = (
-            "Be thorough, articulate, and use clear, formal but warm language. Prioritize readability, high contrast, and detailed explanations, suitable for deep learning or reflective thought."
+            "Be thorough, articulate, and use clear, formal but warm language. Provide detailed explanations with practical examples, suitable for deep learning or reflective thought."
         )
 
     standard_instruction = (
@@ -74,9 +73,6 @@ except KeyError:
 
 # Use the streaming endpoint for chat
 GEMINI_CHAT_STREAM_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-GEMINI_IMAGE_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{IMAGE_MODEL}:predict?key={GEMINI_API_KEY}"
-
-
 
 # ======================
 # HELPER FUNCTIONS
@@ -91,9 +87,6 @@ def autoplay_audio(audio_base64_data):
     """
     st.markdown(md, unsafe_allow_html=True)
 
-
-
-
 @st.cache_data(show_spinner=False)
 def get_tts_base64(text: str, lang_code: str) -> str:
     """Converts text to speech using gTTS and returns base64 encoded audio."""
@@ -105,11 +98,7 @@ def get_tts_base64(text: str, lang_code: str) -> str:
         mp3_fp.seek(0)
         return base64.b64encode(mp3_fp.read()).decode()
     except Exception as e:
-        # st.error(f"TTS failed: Could not generate audio for the selected language.")
         return ""
-
-
-
 
 def call_gemini_api(payload: dict, url: str, stream: bool = False) -> requests.Response:
     """Handles API call with exponential backoff and streaming support."""
@@ -128,18 +117,14 @@ def call_gemini_api(payload: dict, url: str, stream: bool = False) -> requests.R
             return response
         except requests.exceptions.HTTPError as e:
             if response is not None and response.status_code == 400:
-                # Don't stop the app for image generation errors
-                if "imagen" in url.lower():
-                    raise Exception(f"Image generation API error: {response.text}")
-                else:
-                    try:
-                        error_json = response.json()
-                        error_detail = error_json.get('error', {}).get('message', str(e))
-                        st.error(f"⚠️ **Bad Request Error (400):** The API rejected the request. Details: {error_detail}")
-                        st.stop()
-                    except json.JSONDecodeError:
-                        st.error(f"⚠️ **Bad Request Error (400):** API response content was not readable. Status: {response.text}")
-                        st.stop()
+                try:
+                    error_json = response.json()
+                    error_detail = error_json.get('error', {}).get('message', str(e))
+                    st.error(f"⚠️ **Bad Request Error (400):** The API rejected the request. Details: {error_detail}")
+                    st.stop()
+                except json.JSONDecodeError:
+                    st.error(f"⚠️ **Bad Request Error (400):** API response content was not readable. Status: {response.text}")
+                    st.stop()
             
             if i < max_retries - 1:
                 wait_time = 2 ** i
@@ -150,72 +135,32 @@ def call_gemini_api(payload: dict, url: str, stream: bool = False) -> requests.R
                 st.stop()
     return response
 
-
-
 # ======================
-# LLM & IMAGE FUNCTIONS
+# LLM FUNCTIONS
 # ======================
 
 def prepare_chat_payload(prompt: str, history: list, mode: str):
     """Prepares the structured payload for the Gemini chat API."""
     
-    # 1. RAG / Document Retrieval Simulation (Placeholder)
-    rag_context = "Your knowledge base is founded on Jain principles: Ahimsa (non-violence), Anekantavada (non-absolutism), Aparigraha (non-possessiveness)." 
+    # RAG / Document Retrieval Simulation (Placeholder)
+    rag_context = "Your knowledge base is founded on Jain principles: Ahimsa (non-violence), Anekantavada (non-absolutism), Aparigraha (non-possessiveness), Satya (truth), Asteya (non-stealing), Brahmacharya (chastity)." 
     full_prompt_text = (
         f"RAG_CONTEXT: {rag_context}\n\n"
         f"USER QUERY: {prompt}"
     )
     
-    # 2. Format Chat History
+    # Format Chat History
     chat_history_parts = [{"role": "user" if msg["role"] == "User" else "model", "parts": [{"text": msg["content"]}]} for msg in history]
     chat_history_parts.append({"role": "user", "parts": [{"text": full_prompt_text}]})
 
-    # 3. Construct Payload
+    # Construct Payload
     payload = {
         "contents": chat_history_parts,
         "systemInstruction": get_system_instruction(mode), 
         "tools": [{ "google_search": {} }], 
-        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 250} # CORRECTED key from 'config' to 'generationConfig'
+        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 250}
     }
     return payload
-
-
-
-
-def generate_image(prompt: str) -> str:
-    """Generates an image using the Imagen API and returns a base64 encoded image URL."""
-    
-    # Enhance the prompt to guide the model away from policy violations (like specific deities)
-    style_prompt = f"A high-quality, inspiring digital art image representing the core Jain principle of '{prompt}'. Ensure the style is peaceful, warm, and visually appealing for meditation or reflection, avoiding specific religious figures."
-    
-    payload = {
-        "instances": {
-            "prompt": style_prompt,
-            "aspectRatio": "1:1"
-        },
-        "parameters": {"sampleCount": 1}
-    }
-
-    try:
-        with st.spinner("✨ Yashvi is visualizing your intention..."):
-            response = call_gemini_api(payload, GEMINI_IMAGE_URL, stream=False)
-            
-        result = response.json()
-        try:
-            b64_data = result['predictions'][0]['bytesBase64Encoded']
-            return f"data:image/png;base64,{b64_data}"
-        except (KeyError, IndexError, TypeError):
-            st.error("Image generation failed. Please try a different prompt or check API configuration.")
-            return ""
-    except Exception as e:
-        if "billed users" in str(e):
-            st.warning("🖼️ **Image Generation Notice:** The image generation feature currently requires billing setup. For now, enjoy Yashvi's conversational wisdom! 🙏")
-        else:
-            st.error(f"Image generation error: {str(e)}")
-        return ""
-
-
-
 
 def listen_for_speech(lang_code):
     """Uses the microphone to capture and recognize speech."""
@@ -243,159 +188,269 @@ def listen_for_speech(lang_code):
         except Exception as e:
             st.error(f"Microphone error: Please ensure your browser has microphone permission. Note: Voice input may not work in all cloud environments.")
 
-
-
-
 # ======================
-# STREAMLIT UI
+# STREAMLIT UI - JAIN THEMED
 # ======================
 
-# --- Custom CSS for Accessibility and Modern Feel ---
+# --- Custom CSS for Jain Theme and Accessibility ---
 st.markdown("""
 <style>
-    /* General Font Size and Readability */
-    html, body, [class*="st-emotion-cache"] {
-        font-size: 16px; /* Base font size increase for better readability */
+    /* Jain Theme Colors */
+    :root {
+        --jain-red: #8B0000;
+        --jain-gold: #D4AF37;
+        --jain-white: #FFFFFF;
+        --jain-cream: #FFF8E7;
+        --jain-dark: #2F2F2F;
     }
+    
+    /* Main Background */
+    .stApp {
+        background: linear-gradient(135deg, var(--jain-cream) 0%, #FFFFFF 100%);
+    }
+    
+    /* Headers with Jain Colors */
     h1, h2, h3 {
-        color: #8b0000; /* Deep red for a vibrant, respectful tone */
+        color: var(--jain-red) !important;
+        font-weight: 600;
     }
-    .st-emotion-cache-18ni2gq { /* Style for chat container */
-        border: 2px solid #e0e0e0;
-        border-radius: 12px;
+    
+    /* Sidebar Styling */
+    .css-1d391kg {
+        background-color: var(--jain-cream);
+        border-right: 3px solid var(--jain-gold);
     }
-    /* Larger, clearer buttons */
+    
+    /* Buttons with Jain Theme */
     .stButton>button {
-        font-size: 1.1rem;
-        border-radius: 10px;
+        background-color: var(--jain-red);
+        color: var(--jain-white);
+        border: none;
+        border-radius: 8px;
         padding: 0.5rem 1rem;
-        border: 1px solid #c9c9c9;
+        font-weight: 500;
+        transition: all 0.3s ease;
     }
-    /* Chat bubbles */
-    .st-chat-message-container {
-        padding: 5px 10px;
+    
+    .stButton>button:hover {
+        background-color: #A52A2A;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(139, 0, 0, 0.2);
     }
-    .st-chat-message-container [data-testid="stChatMessageContent"] {
-        padding: 10px 15px;
-        border-radius: 15px;
+    
+    /* Chat Container */
+    .stChatMessage {
+        padding: 1rem;
+        border-radius: 12px;
+        margin: 0.5rem 0;
+    }
+    
+    /* User Message */
+    .stChatMessage[data-testid="stChatMessage"]:nth-child(odd) {
+        background-color: #E8F4FD;
+        border-left: 4px solid #4A90E2;
+    }
+    
+    /* Assistant Message */
+    .stChatMessage[data-testid="stChatMessage"]:nth-child(even) {
+        background-color: #F0F8F0;
+        border-left: 4px solid var(--jain-red);
+    }
+    
+    /* Input Box */
+    .stTextInput>div>div>input {
+        border: 2px solid var(--jain-gold);
+        border-radius: 8px;
+        padding: 0.75rem;
+    }
+    
+    /* Radio Buttons */
+    .stRadio>div {
+        background-color: var(--jain-white);
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--jain-gold);
+    }
+    
+    /* Select Box */
+    .stSelectbox>div>div {
+        border: 2px solid var(--jain-gold);
+        border-radius: 8px;
+    }
+    
+    /* Chat Input */
+    .stChatInputContainer {
+        background: var(--jain-white);
+        padding: 1rem;
+        border-radius: 12px;
+        border: 2px solid var(--jain-gold);
+    }
+    
+    /* Voice Button Special */
+    .voice-button {
+        background: linear-gradient(135deg, var(--jain-red), #A52A2A) !important;
+    }
+    
+    /* Clear History Button */
+    .clear-button {
+        background: linear-gradient(135deg, #666666, #888888) !important;
     }
 </style>
 """, unsafe_allow_html=True)
-
-
 
 # --- Initialize Session State ---
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "user_mode" not in st.session_state:
-    st.session_state.user_mode = "Deep Dive (Elders/Learners) 🧘‍♀️" # Default to accessible mode
+    st.session_state.user_mode = "Deep Dive (Elders/Learners) 🧘‍♀️"
 if "voice_prompt" not in st.session_state:
     st.session_state.voice_prompt = ""
 
-
-
-# --- Header and Introduction ---
-col1, col2 = st.columns([1, 4])
-with col1:
-    # Placeholder for a simple Avatar image URL 
-    st.image("https://placehold.co/100x100/A52A2A/FFFFFF?text=Yashvi", width=80) 
+# --- Header with Jain Theme ---
+col1, col2, col3 = st.columns([1, 3, 1])
 with col2:
-    st.title("🌸 AI Sister Yashvi 🌸")
-    st.write("Jai Jinendra 🙏 I'm Yashvi, your compassionate AI companion.")
+    st.markdown("""
+    <div style='text-align: center; padding: 1rem; background: linear-gradient(135deg, #8B0000, #A52A2A); 
+                border-radius: 15px; color: white; margin-bottom: 2rem;'>
+        <h1 style='color: white; margin: 0;'>🌸 AI Sister Yashvi 🌸</h1>
+        <p style='margin: 0.5rem 0; font-size: 1.2rem;'>Jai Jinendra 🙏 Your Compassionate Jain Companion</p>
+        <div style='font-size: 0.9rem; opacity: 0.9;'>
+            Embracing Ahimsa • Anekantavada • Aparigraha
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.markdown("---")
 
-
-
-# --- Sidebar Configuration (Fixed Settings) ---
+# --- Sidebar Configuration (Jain Themed) ---
 with st.sidebar:
-    st.header("⚙️ Configuration")
+    st.markdown("""
+    <div style='text-align: center; padding: 1rem; background: linear-gradient(135deg, #8B0000, #A52A2A); 
+                border-radius: 10px; color: white; margin-bottom: 1rem;'>
+        <h3 style='color: white; margin: 0;'>⚙️ Configuration</h3>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Display Chat Model used
     st.markdown(f"**Chat Model:** `{GEMINI_MODEL}`")
-    st.markdown(f"**Image Model:** `{IMAGE_MODEL}`")
     st.markdown("---")
     
-    # 1. User Mode Selector (Crucial UX feature)
-    st.subheader("1. AI Persona Mode")
+    # 1. User Mode Selector
+    st.subheader("🎭 AI Persona Mode")
     st.session_state.user_mode = st.radio(
         "Select Conversation Style:",
         ["Quick Chat (Youth) 💬", "Deep Dive (Elders/Learners) 🧘‍♀️"],
-        index=st.session_state.user_mode.index(st.session_state.user_mode) if st.session_state.user_mode in ["Quick Chat (Youth) 💬", "Deep Dive (Elders/Learners) 🧘‍♀️"] else 1
+        index=1 if st.session_state.user_mode == "Deep Dive (Elders/Learners) 🧘‍♀️" else 0,
+        key="persona_mode"
     )
-    st.caption("This mode adjusts Yashvi's response length and tone.")
+    st.caption("✨ Tailored responses for different age groups and needs")
 
     st.markdown("---")
 
-    # 2. TTS and Language Settings (Accessibility)
-    st.subheader("2. Voice Settings (TTS/STT)")
+    # 2. TTS and Language Settings
+    st.subheader("🎙️ Voice Settings")
     selected_lang = st.selectbox("Choose Language:", list(LANG_MAP.keys()), key="tts_lang_select")
     lang_code = LANG_MAP[selected_lang]
-    st.caption("This sets the language for both voice **input** and voice **output**.")
+    st.caption("🌐 Supports voice input and output in multiple languages")
 
     st.markdown("---")
 
-    # 3. Image Generation Tool (Creative Feature)
-    st.subheader("3. Creative Tool: Image Generator")
-    image_prompt = st.text_area("Imagine a Jain concept (e.g., Ahimsa)", height=100, key="image_prompt_input")
-    
-    if st.button("✨ Visualize Idea"):
-        if image_prompt:
-            image_url = generate_image(image_prompt)
-            if image_url:
-                st.image(image_url, caption=f"Yashvi's Visualization: {image_prompt}", use_column_width=True)
-        else:
-            st.warning("Please enter an idea to visualize.")
+    # 3. Quick Jain Principles Reference
+    st.subheader("📖 Jain Principles")
+    with st.expander("View Key Jain Concepts"):
+        st.markdown("""
+        **🏹 Ahimsa (Non-violence)**
+        - Respect for all living beings
+        - Mindful actions and words
+        
+        **🔶 Anekantavada (Multiple Viewpoints)**
+        - Understanding different perspectives
+        - Avoiding absolute judgments
+        
+        **📦 Aparigraha (Non-possessiveness)**
+        - Minimalism and simplicity
+        - Freedom from attachments
+        
+        **🗣️ Satya (Truth)**
+        - Honest communication
+        - Thoughtful speech
+        
+        **🤲 Asteya (Non-stealing)**
+        - Respect for others' property
+        - Contentment with what one has
+        """)
 
     st.markdown("---")
 
     # 4. History Management
-    if st.button("🗑️ Clear Chat History"):
+    st.subheader("📚 Conversation")
+    if st.button("🗑️ Clear Chat History", use_container_width=True, key="clear_history"):
         st.session_state.chat_history = []
         st.session_state.voice_prompt = ""
+        st.success("Conversation history cleared!")
         st.experimental_rerun()
 
-
-
 # --- Main Chat Interface ---
+st.markdown(f"### 💬 Chat Mode: **{st.session_state.user_mode}**")
 
-st.subheader(f"Chat Mode: **{st.session_state.user_mode}**")
-chat_container = st.container(height=400, border=True)
+# Chat container with Jain theme
+chat_container = st.container(height=450, border=True)
 with chat_container:
     if not st.session_state.chat_history:
-        st.info("Start the conversation! Ask Yashvi for advice, spiritual knowledge, or just share your day.")
+        st.markdown("""
+        <div style='text-align: center; padding: 2rem; color: #666;'>
+            <h3>🕊️ Welcome to Your Digital Sanctuary</h3>
+            <p>Start a conversation with Yashvi! You can ask about:</p>
+            <div style='background: #F0F8F0; padding: 1rem; border-radius: 8px; margin: 1rem 0;'>
+                • Jain philosophy and principles<br>
+                • Daily spiritual guidance<br>
+                • Cultural traditions and practices<br>
+                • Personal challenges and growth<br>
+                • Or simply share your thoughts
+            </div>
+            <p><em>Jai Jinendra 🙏 How can I support you today?</em></p>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Display existing history
     for msg in st.session_state.chat_history:
-        with st.chat_message(msg["role"].lower()):
+        with st.chat_message("user" if msg["role"] == "User" else "assistant"):
             st.markdown(msg["content"])
 
-
-
-# --- Voice and Text Input ---
+# --- Voice and Text Input Section ---
 st.markdown("---")
+st.markdown("### 💭 Share Your Thoughts")
+
 col_voice, col_text = st.columns([1, 4])
 
-# Voice Button
+# Voice Button with enhanced styling
 with col_voice:
-    # Trigger the voice listener function
-    if st.button("🎙️ Speak to Yashvi", use_container_width=True):
+    st.markdown("""
+    <style>
+    div[data-testid="stButton"] button[kind="secondary"] {
+        background: linear-gradient(135deg, #8B0000, #A52A2A) !important;
+        color: white !important;
+        border: none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    if st.button("🎙️ Speak to Yashvi", use_container_width=True, type="secondary"):
         listen_for_speech(lang_code)
 
-# Text Input
+# Text Input with Jain styling
 with col_text:
-    user_input = st.chat_input("📝 Type your message here...")
+    user_input = st.chat_input("📝 Type your message here...", key="chat_input")
 
 # Determine the actual prompt to process
 prompt_to_process = user_input
 if st.session_state.voice_prompt:
     prompt_to_process = st.session_state.voice_prompt
-    # Clear the voice prompt after retrieving it
-    st.markdown(f"**You (via voice):** *{prompt_to_process}*")
-    st.session_state.voice_prompt = "" # Process only once
+    # Show voice input preview
+    st.info(f"**Voice input detected:** {prompt_to_process}")
+    st.session_state.voice_prompt = ""
 
-
-
+# --- Process User Input ---
 if prompt_to_process:
     # 1. Add user message to history and display
     st.session_state.chat_history.append({"role": "User", "content": prompt_to_process})
@@ -417,7 +472,7 @@ if prompt_to_process:
             # Call API with streaming enabled
             response = call_gemini_api(payload, GEMINI_CHAT_STREAM_URL, stream=True)
             
-            # Streaming logic: This relies on parsing NDJSON chunks
+            # Streaming logic
             for chunk in response.iter_content(chunk_size=1024):
                 if chunk:
                     try:
@@ -438,7 +493,7 @@ if prompt_to_process:
         
         except Exception as e:
             st.error(f"An error occurred during streaming: {e}")
-            full_response_text = "I'm sorry, I lost connection while trying to respond."
+            full_response_text = "I'm sorry, I encountered an error while responding. Please try again."
         
         finally:
             # 4. Finalize the displayed message and remove the cursor
@@ -452,3 +507,12 @@ if prompt_to_process:
                 audio_b64 = get_tts_base64(full_response_text, lang_code)
                 if audio_b64:
                     autoplay_audio(audio_b64)
+
+# --- Footer with Jain Blessing ---
+st.markdown("---")
+st.markdown("""
+<div style='text-align: center; color: #666; padding: 1rem;'>
+    <p><em>May your journey be filled with peace, compassion, and spiritual growth</em></p>
+    <p style='font-size: 0.9rem;'>🕊️ <strong>Micchami Dukkadam</strong> 🕊️</p>
+</div>
+""", unsafe_allow_html=True)
