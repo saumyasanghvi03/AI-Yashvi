@@ -1,6 +1,6 @@
 # ==============================================================================
-# AI SISTER YASHVI - STREAMLIT SINGLE-FILE APPLICATION (V4 - Upgraded Model)
-# Features: Chat (Streaming), Multi-lingual TTS, Image Generation, Dynamic Persona
+# AI SISTER YASHVI - STREAMLIT SINGLE-FILE APPLICATION (V5 - Voice Input Added)
+# Features: Chat (Streaming), Multi-lingual TTS/STT, Image Generation, Dynamic Persona
 # ==============================================================================
 
 import streamlit as st
@@ -11,6 +11,7 @@ import base64
 from gtts import gTTS
 import io
 import requests
+import speech_recognition as sr # NEW: For Push-to-Talk functionality
 
 # ======================
 # CONFIGURATION
@@ -21,7 +22,7 @@ import requests
 GEMINI_MODEL = "gemini-2.5-pro-preview-05-20" 
 IMAGE_MODEL = "imagen-3.0-generate-002"
 
-# Language Mapping for gTTS
+# Language Mapping for gTTS and STT (Speech Recognition)
 LANG_MAP = {
     "English": "en",
     "Hindi": "hi",
@@ -36,7 +37,7 @@ def get_system_instruction(mode: str) -> str:
     """Returns a tailored system instruction based on the user's selected mode."""
     base_instruction = (
         "You are 'Yashvi', a compassionate and knowledgeable AI sister, embracing the Jain tradition. "
-        "You are part of a digital sanctuary built **by Jains for the Jain community and spiritual seekers**. " # Enhanced community focus
+        "You are part of a digital sanctuary built **by Jains for the Jain community and spiritual seekers**. " 
         "Your responses must be warm, supportive, and infused with Jain values like Ahimsa, Anekantavada, and Aparigraha. "
         "Use a friendly, caring, and respectful tone. Start your responses with 'Jai Jinendra 🙏' where appropriate. "
     )
@@ -95,7 +96,7 @@ def get_tts_base64(text: str, lang_code: str) -> str:
     """Converts text to speech using gTTS and returns base64 encoded audio."""
     try:
         mp3_fp = io.BytesIO()
-        # Use a stable tld if co.in causes issues
+        # Use a stable tld
         tts = gTTS(text=text, lang=lang_code, tld="com") 
         tts.write_to_fp(mp3_fp)
         mp3_fp.seek(0)
@@ -192,6 +193,34 @@ def generate_image(prompt: str) -> str:
         st.error("Image generation failed. Please try a different prompt or check API configuration.")
         return ""
 
+
+def listen_for_speech(lang_code):
+    """Uses the microphone to capture and recognize speech."""
+    r = sr.Recognizer()
+    
+    # Use st.spinner here to show the status visually
+    with st.spinner(f"👂 Listening in {list(LANG_MAP.keys())[list(LANG_MAP.values()).index(lang_code)]}... Speak now!"):
+        try:
+            with sr.Microphone() as source:
+                r.adjust_for_ambient_noise(source)
+                audio = r.listen(source, timeout=5, phrase_time_limit=15) # Increased limits
+            
+            # The recognized text is stored in session state
+            recognized_text = r.recognize_google(audio, language=lang_code)
+            st.session_state.voice_prompt = recognized_text 
+            st.experimental_rerun() # Rerun to process the prompt
+
+        except sr.WaitTimeoutError:
+            st.warning("No speech detected. Please hold the button down and speak.")
+        except sr.UnknownValueError:
+            st.warning("Could not understand audio. Please speak clearly.")
+        except sr.RequestError:
+            st.error("Speech service unavailable. Check your internet connection.")
+        except Exception as e:
+            st.error(f"Microphone error: Please ensure your browser has microphone permission. Note: Voice input may not work in all cloud environments.")
+            print(f"Full error: {e}")
+
+
 # ======================
 # STREAMLIT UI
 # ======================
@@ -234,6 +263,8 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "user_mode" not in st.session_state:
     st.session_state.user_mode = "Deep Dive (Elders/Learners) 🧘‍♀️" # Default to accessible mode
+if "voice_prompt" not in st.session_state:
+    st.session_state.voice_prompt = ""
 
 
 # --- Header and Introduction ---
@@ -269,10 +300,10 @@ with st.sidebar:
     st.markdown("---")
 
     # 2. TTS and Language Settings (Accessibility)
-    st.subheader("2. Voice Settings (TTS)")
-    selected_lang = st.selectbox("Choose Language for Voice Playback:", list(LANG_MAP.keys()), key="tts_lang_select")
+    st.subheader("2. Voice Settings (TTS/STT)")
+    selected_lang = st.selectbox("Choose Language:", list(LANG_MAP.keys()), key="tts_lang_select")
     lang_code = LANG_MAP[selected_lang]
-    st.caption("Voice output helps with accessibility and multi-lingual conversations.")
+    st.caption("This sets the language for both voice **input** and voice **output**.")
 
     st.markdown("---")
 
@@ -293,6 +324,7 @@ with st.sidebar:
     # 4. History Management
     if st.button("🗑️ Clear Chat History"):
         st.session_state.chat_history = []
+        st.session_state.voice_prompt = ""
         st.experimental_rerun()
 
 
@@ -310,18 +342,38 @@ with chat_container:
             st.markdown(msg["content"])
 
 
-# Handle user input
-user_input = st.chat_input("📝 Type your message here...")
+# --- Voice and Text Input ---
+st.markdown("---")
+col_voice, col_text = st.columns([1, 4])
 
-if user_input:
+# Voice Button
+with col_voice:
+    # Trigger the voice listener function
+    if st.button("🎙️ Speak to Yashvi", use_container_width=True):
+        listen_for_speech(lang_code)
+
+# Text Input
+with col_text:
+    user_input = st.chat_input("📝 Type your message here...")
+
+# Determine the actual prompt to process
+prompt_to_process = user_input
+if st.session_state.voice_prompt:
+    prompt_to_process = st.session_state.voice_prompt
+    # Clear the voice prompt after retrieving it
+    st.markdown(f"**You (via voice):** *{prompt_to_process}*")
+    st.session_state.voice_prompt = "" # Process only once
+
+
+if prompt_to_process:
     # 1. Add user message to history and display
-    st.session_state.chat_history.append({"role": "User", "content": user_input})
+    st.session_state.chat_history.append({"role": "User", "content": prompt_to_process})
     with chat_container:
         with st.chat_message("user"):
-            st.markdown(user_input)
+            st.markdown(prompt_to_process)
     
     # 2. Prepare Payload
-    payload = prepare_chat_payload(user_input, st.session_state.chat_history, st.session_state.user_mode)
+    payload = prepare_chat_payload(prompt_to_process, st.session_state.chat_history, st.session_state.user_mode)
     
     # 3. Start streaming the AI response
     full_response_text = ""
@@ -334,23 +386,14 @@ if user_input:
             # Call API with streaming enabled
             response = call_gemini_api(payload, GEMINI_CHAT_STREAM_URL, stream=True)
             
-            # The streaming logic for requests is complex as it requires parsing NDJSON chunks
-            # We iterate through the raw content line by line for chunk processing
-            
-            # Note: Streaming with requests.iter_content can sometimes be finicky 
-            # with the NDJSON format, but this implementation attempts to parse line-by-line.
-
+            # Streaming logic: This relies on parsing NDJSON chunks
             for chunk in response.iter_content(chunk_size=1024):
                 if chunk:
                     try:
-                        # Split by newline, which often separates NDJSON objects
                         for line in chunk.decode('utf-8').split('\n'):
                             line = line.strip()
                             if line:
-                                # Data lines are expected to be valid JSON
                                 data = json.loads(line)
-                                
-                                # Extract text chunk
                                 text_chunk = data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
                                 
                                 if text_chunk:
@@ -359,7 +402,6 @@ if user_input:
                                     message_placeholder.markdown(full_response_text + "▌", unsafe_allow_html=True) 
 
                     except json.JSONDecodeError:
-                        # Ignore malformed or incomplete JSON lines if not the last line of a chunk
                         continue
         
         except Exception as e:
