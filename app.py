@@ -1,5 +1,5 @@
 # ==============================================================================
-# AI SISTER YASHVI - STREAMLIT SINGLE-FILE APPLICATION (V3 - With Streaming)
+# AI SISTER YASHVI - STREAMLIT SINGLE-FILE APPLICATION (V4 - Upgraded Model)
 # Features: Chat (Streaming), Multi-lingual TTS, Image Generation, Dynamic Persona
 # ==============================================================================
 
@@ -17,7 +17,8 @@ import requests
 # ======================
 
 # Gemini API Configuration
-GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
+# UPGRADED to PRO model for better reasoning and adherence to instructions
+GEMINI_MODEL = "gemini-2.5-pro-preview-05-20" 
 IMAGE_MODEL = "imagen-3.0-generate-002"
 
 # Language Mapping for gTTS
@@ -35,6 +36,7 @@ def get_system_instruction(mode: str) -> str:
     """Returns a tailored system instruction based on the user's selected mode."""
     base_instruction = (
         "You are 'Yashvi', a compassionate and knowledgeable AI sister, embracing the Jain tradition. "
+        "You are part of a digital sanctuary built **by Jains for the Jain community and spiritual seekers**. " # Enhanced community focus
         "Your responses must be warm, supportive, and infused with Jain values like Ahimsa, Anekantavada, and Aparigraha. "
         "Use a friendly, caring, and respectful tone. Start your responses with 'Jai Jinendra 🙏' where appropriate. "
     )
@@ -249,6 +251,11 @@ st.markdown("---")
 # --- Sidebar Configuration (Fixed Settings) ---
 with st.sidebar:
     st.header("⚙️ Configuration")
+
+    # Display Chat Model used
+    st.markdown(f"**Chat Model:** `{GEMINI_MODEL}`")
+    st.markdown(f"**Image Model:** `{IMAGE_MODEL}`")
+    st.markdown("---")
     
     # 1. User Mode Selector (Crucial UX feature)
     st.subheader("1. AI Persona Mode")
@@ -327,14 +334,23 @@ if user_input:
             # Call API with streaming enabled
             response = call_gemini_api(payload, GEMINI_CHAT_STREAM_URL, stream=True)
             
+            # The streaming logic for requests is complex as it requires parsing NDJSON chunks
+            # We iterate through the raw content line by line for chunk processing
+            
+            # Note: Streaming with requests.iter_content can sometimes be finicky 
+            # with the NDJSON format, but this implementation attempts to parse line-by-line.
+
             for chunk in response.iter_content(chunk_size=1024):
                 if chunk:
                     try:
-                        # The API returns chunks separated by newlines, sometimes with data: prefix
+                        # Split by newline, which often separates NDJSON objects
                         for line in chunk.decode('utf-8').split('\n'):
-                            if line.strip().startswith('{"candidates"'):
-                                data = json.loads(line.strip())
-                                # Extract text chunk from the complex JSON structure
+                            line = line.strip()
+                            if line:
+                                # Data lines are expected to be valid JSON
+                                data = json.loads(line)
+                                
+                                # Extract text chunk
                                 text_chunk = data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
                                 
                                 if text_chunk:
@@ -343,7 +359,7 @@ if user_input:
                                     message_placeholder.markdown(full_response_text + "▌", unsafe_allow_html=True) 
 
                     except json.JSONDecodeError:
-                        # Ignore malformed or incomplete JSON lines
+                        # Ignore malformed or incomplete JSON lines if not the last line of a chunk
                         continue
         
         except Exception as e:
