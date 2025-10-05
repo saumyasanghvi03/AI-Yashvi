@@ -1,6 +1,6 @@
 # ==============================================================================
-# AI SISTER YASHVI - LIGHTWEIGHT EDITION
-# Sophisticated Jain Spiritual Companion with Local Intelligence
+# AI SISTER YASHVI - STABLE EDITION
+# Jain Spiritual Companion with Local Intelligence
 # ==============================================================================
 
 import streamlit as st
@@ -9,229 +9,138 @@ from gtts import gTTS
 import io
 import speech_recognition as sr
 import random
-import re
 from datetime import datetime
-import pandas as pd
 
 # ======================
-# PREMIUM CONFIGURATION
+# CONFIGURATION
 # ======================
 
-# Premium Color Scheme
 COLORS = {
-    "primary": "#2E7D32",      # Deep Jain Green
-    "secondary": "#D4AF37",    # Gold
-    "accent": "#8B0000",       # Deep Red
-    "background": "#FAFDF7",   # Soft White
-    "surface": "#FFFFFF",      # Pure White
-    "text": "#1A1A1A",         # Dark Text
-    "text_light": "#666666"    # Light Text
+    "primary": "#2E7D32",
+    "secondary": "#D4AF37", 
+    "accent": "#8B0000",
+    "background": "#FAFDF7",
+    "surface": "#FFFFFF",
+    "text": "#1A1A1A",
+    "text_light": "#666666"
 }
 
-# Enhanced Language Support
 LANG_MAP = {
     "English": "en",
     "Hindi": "hi", 
-    "Gujarati": "gu",
-    "Sanskrit": "sa"
+    "Gujarati": "gu"
 }
 
 # ======================
-# ADVANCED JAIN KNOWLEDGE MEMORY SYSTEM
+# JAIN KNOWLEDGE MEMORY
 # ======================
 
 class JainKnowledgeMemory:
     def __init__(self):
-        self.knowledge_base = self._load_comprehensive_knowledge()
-        self.conversation_memory = []
+        self.knowledge_base = self._load_knowledge()
         
-    def _load_comprehensive_knowledge(self):
-        """Load comprehensive Jain knowledge"""
+    def _load_knowledge(self):
         return {
             "philosophy": {
                 "six_dravyas": {
-                    "title": "🪷 Six Dravyas (Substances)",
-                    "content": """According to Jain philosophy, the universe consists of six eternal substances:
-
-1. **Jiva** - Living souls (conscious beings)
-2. **Ajiva** - Non-living substances:
-   - Pudgala (Matter)
-   - Dharma (Medium of motion)
-   - Adharma (Medium of rest)  
-   - Akasha (Space)
-   - Kala (Time)
-
-These six dravyas form the foundation of Jain metaphysics.""",
-                    "keywords": ["dravya", "substance", "jiva", "ajiva", "soul", "matter"]
+                    "title": "Six Dravyas (Substances)",
+                    "content": "According to Jain philosophy, the universe consists of six eternal substances: Jiva (soul), Ajiva (non-soul), Pudgala (matter), Dharma (motion), Adharma (rest), Akasha (space), Kala (time).",
+                    "keywords": ["dravya", "substance", "jiva", "ajiva", "soul"]
                 },
                 "nine_tattvas": {
-                    "title": "📊 Nine Tattvas (Principles)",
-                    "content": """The nine fundamental principles:
-
-1. **Jiva** - Soul
-2. **Ajiva** - Non-soul
-3. **Asrava** - Influx of karma
-4. **Bandha** - Bondage of karma
-5. **Punya** - Virtuous karma
-6. **Papa** - Sinful karma
-7. **Samvara** - Stoppage of karma
-8. **Nirjara** - Shedding of karma
-9. **Moksha** - Liberation
-
-Understanding these leads to spiritual progress.""",
+                    "title": "Nine Tattvas (Principles)", 
+                    "content": "The nine fundamental principles: Jiva (soul), Ajiva (non-soul), Asrava (karma influx), Bandha (bondage), Punya (virtue), Papa (sin), Samvara (stoppage), Nirjara (shedding), Moksha (liberation).",
                     "keywords": ["tattva", "principle", "karma", "moksha", "liberation"]
                 },
                 "anekantavada": {
-                    "title": "🔶 Anekantavada (Multiple Viewpoints)",
-                    "content": """The doctrine of manifold aspects:
-
-**Core Concepts:**
-- Reality is complex and multi-dimensional
-- Avoid absolute statements and dogmatic thinking
-- Respect all perspectives while maintaining your truth
-
-**Practice:** When facing conflict, consider multiple viewpoints before forming conclusions.""",
+                    "title": "Anekantavada (Multiple Viewpoints)",
+                    "content": "The doctrine of manifold aspects. Reality is complex and multi-dimensional. Avoid absolute statements and respect all perspectives while maintaining your truth.",
                     "keywords": ["anekantavada", "viewpoints", "perspective", "truth"]
                 }
             },
             "ethics": {
                 "ahimsa": {
-                    "title": "🕊️ Ahimsa (Non-violence)",
-                    "content": """The supreme principle of Jainism:
-
-**Three Dimensions:**
-- **Physical** - Not harming any creature
-- **Verbal** - Speaking gentle, truthful words  
-- **Mental** - Cultivating compassionate thoughts
-
-**Practice:** Before any action, ask: "Will this cause harm?"""",
+                    "title": "Ahimsa (Non-violence)",
+                    "content": "The supreme principle of causing no harm to any living being. Practice non-violence in thought, word, and action. Before any action, ask: Will this cause harm?",
                     "keywords": ["ahimsa", "non-violence", "harm", "compassion"]
                 },
                 "five_vows": {
-                    "title": "📜 Five Mahavratas (Vows)",
-                    "content": """The five great vows:
-
-1. **Ahimsa** - Non-violence
-2. **Satya** - Truthfulness
-3. **Asteya** - Non-stealing
-4. **Brahmacharya** - Chastity
-5. **Aparigraha** - Non-possessiveness
-
-These vows purify the soul and prevent karma bondage.""",
+                    "title": "Five Mahavratas (Vows)",
+                    "content": "The five great vows: Ahimsa (non-violence), Satya (truthfulness), Asteya (non-stealing), Brahmacharya (chastity), Aparigraha (non-possessiveness).",
                     "keywords": ["vows", "mahavrata", "ahimsa", "satya", "asteya"]
                 }
             },
             "practices": {
                 "meditation": {
-                    "title": "🧘‍♀️ Meditation Practices",
-                    "content": """Jain meditation techniques:
-
-**Preksha Meditation:**
-- Focus on breath and body awareness
-- 20-30 minutes daily practice
-
-**Samayika:**
-- 48-minute practice of equanimity
-- Cultivates mental balance
-
-**Kayotsarga:**
-- Complete relaxation and detachment""",
+                    "title": "Meditation Practices", 
+                    "content": "Jain meditation techniques: Preksha Meditation (breath awareness), Samayika (48-minute equanimity), Kayotsarga (detachment from body). Practice 20-30 minutes daily.",
                     "keywords": ["meditation", "samayika", "preksha", "mindfulness"]
                 },
                 "daily_routine": {
-                    "title": "🌅 Daily Spiritual Routine",
-                    "content": """Ideal daily practices:
-
-**Morning:**
-- Wake before sunrise
-- Recite Navkar Mantra
-- Practice meditation
-- Set Ahimsa intentions
-
-**Throughout Day:**
-- Mindful eating with gratitude
-- Conscious speech and actions
-
-**Evening:**
-- Review day's thoughts and actions
-- Practice forgiveness and planning""",
+                    "title": "Daily Spiritual Routine",
+                    "content": "Ideal daily practice: Wake before sunrise, recite Navkar Mantra, practice meditation, set Ahimsa intentions, mindful eating, evening reflection on thoughts and actions.",
                     "keywords": ["routine", "daily", "practice", "schedule"]
                 }
             },
             "prayers": {
                 "navkar_mantra": {
-                    "title": "🕉️ Navkar Mantra",
-                    "content": """The fundamental Jain prayer:
-
-**Mantra:**
-"Namo Arihantanam
-Namo Siddhanam
-Namo Ayariyanam
-Nomo Uvajjhayanam
-Namo Loe Savva Sahunam"
-
-**Meaning:** I bow to the Arihants, Siddhas, Acharyas, Upadhyayas, and all Sadhus.""",
+                    "title": "Navkar Mantra",
+                    "content": "The fundamental Jain prayer: Namo Arihantanam, Namo Siddhanam, Namo Ayariyanam, Namo Uvajjhayanam, Namo Loe Savva Sahunam. Meaning: I bow to the perfected beings, liberated souls, spiritual leaders, teachers, and all practitioners.",
                     "keywords": ["navkar", "mantra", "prayer", "namokar"]
                 }
             }
         }
     
     def search_knowledge(self, query):
-        """Search through knowledge base for relevant information"""
         query_lower = query.lower()
         relevant_sections = []
         
         for category, topics in self.knowledge_base.items():
             for topic_key, topic_data in topics.items():
-                # Check title and keywords
                 title_match = topic_data['title'].lower() in query_lower
                 keyword_match = any(keyword in query_lower for keyword in topic_data['keywords'])
                 
                 if title_match or keyword_match:
+                    score = self._calculate_relevance(query_lower, topic_data)
                     relevant_sections.append({
                         'category': category,
                         'title': topic_data['title'],
                         'content': topic_data['content'],
-                        'relevance_score': self._calculate_relevance(query_lower, topic_data)
+                        'relevance_score': score
                     })
         
-        # Sort by relevance and return top 3
         relevant_sections.sort(key=lambda x: x['relevance_score'], reverse=True)
         return relevant_sections[:3]
     
     def _calculate_relevance(self, query, topic_data):
-        """Calculate how relevant a topic is to the query"""
         score = 0
         query_words = set(query.split())
         
-        # Check title words
         title_words = set(topic_data['title'].lower().split())
         score += len(query_words.intersection(title_words)) * 3
         
-        # Check keywords
         keyword_matches = sum(1 for keyword in topic_data['keywords'] if keyword in query)
         score += keyword_matches * 2
         
         return score
 
 # ======================
-# ADVANCED RESPONSE ENGINE
+# RESPONSE ENGINE
 # ======================
 
-class AdvancedResponseEngine:
+class ResponseEngine:
     def __init__(self, knowledge_memory):
         self.knowledge_memory = knowledge_memory
         self.conversation_context = []
         
     def analyze_sentiment(self, text):
-        """Basic sentiment analysis"""
         text_lower = text.lower()
         
-        positive_indicators = ['happy', 'good', 'great', 'wonderful', 'peaceful', 'grateful', 'joy']
-        negative_indicators = ['sad', 'angry', 'stressed', 'worried', 'anxious', 'tired', 'hurt', 'problem']
+        positive_words = ['happy', 'good', 'great', 'wonderful', 'peaceful', 'grateful', 'joy']
+        negative_words = ['sad', 'angry', 'stressed', 'worried', 'anxious', 'tired', 'hurt', 'problem']
         
-        positive_score = sum(1 for word in positive_indicators if word in text_lower)
-        negative_score = sum(1 for word in negative_indicators if word in text_lower)
+        positive_score = sum(1 for word in positive_words if word in text_lower)
+        negative_score = sum(1 for word in negative_words if word in text_lower)
         
         if positive_score > negative_score:
             return "positive"
@@ -240,49 +149,38 @@ class AdvancedResponseEngine:
         else:
             return "neutral"
     
-    def generate_intelligent_response(self, user_input, mode, lang="en"):
-        """Generate sophisticated responses using knowledge memory"""
-        
+    def generate_response(self, user_input, mode, lang="en"):
         sentiment = self.analyze_sentiment(user_input)
         input_lower = user_input.lower()
         
-        # Update conversation context
         self.conversation_context.append({
             "timestamp": datetime.now().isoformat(),
             "user_input": user_input,
             "sentiment": sentiment
         })
         
-        # Keep only last 10 interactions
         self.conversation_context = self.conversation_context[-10:]
         
-        # Search knowledge base
         knowledge_results = self.knowledge_memory.search_knowledge(user_input)
         
-        # Handle greetings
         if any(word in input_lower for word in ["hello", "hi", "hey", "namaste", "jai jinendra"]):
             return self._generate_greeting(sentiment, mode)
         
-        # If knowledge found, use it
         if knowledge_results:
             return self._generate_knowledge_response(knowledge_results, user_input, mode)
             
-        # Emotional support
         if sentiment == "negative":
-            return self._generate_spiritual_support(user_input, mode)
+            return self._generate_support(user_input, mode)
             
-        # Spiritual guidance
         if any(word in input_lower for word in ["guide", "help", "advice", "what should", "how to"]):
-            return self._generate_practical_guidance(user_input, mode)
+            return self._generate_guidance(user_input, mode)
             
-        # Default intelligent response
         return self._generate_contextual_response(user_input, mode)
     
     def _generate_greeting(self, sentiment, mode):
-        """Generate context-aware greetings"""
         time_of_day = self._get_time_based_greeting()
         
-        base_greetings = {
+        greetings = {
             "positive": [
                 f"{time_of_day} beloved soul! 🌸 How may I assist your spiritual journey today?",
                 f"Jai Jinendra! 🙏 Your positive spirit shines. What wisdom shall we explore?",
@@ -297,10 +195,9 @@ class AdvancedResponseEngine:
             ]
         }
         
-        return random.choice(base_greetings[sentiment])
+        return random.choice(greetings[sentiment])
     
     def _get_time_based_greeting(self):
-        """Get appropriate greeting based on time of day"""
         hour = datetime.now().hour
         if 5 <= hour < 12:
             return "Good morning"
@@ -312,123 +209,46 @@ class AdvancedResponseEngine:
             return "Good night"
     
     def _generate_knowledge_response(self, knowledge_results, user_input, mode):
-        """Generate responses based on knowledge findings"""
         primary_topic = knowledge_results[0]
         
         if mode == "Quick Chat":
-            # Smart summary extraction
-            content = primary_topic['content']
-            sentences = content.split('.')
-            summary = '. '.join(sentences[:2]) + '.'
-            
-            response = f"""**{primary_topic['title']}**
-
-{summary}
-
-💫 *Want to explore this deeper?*"""
-            
+            response = f"**{primary_topic['title']}**\n\n{primary_topic['content']}\n\n💫 *Want to explore deeper?*"
         else:
-            # Deep, comprehensive response
-            response = f"""**{primary_topic['title']}**
-
-{primary_topic['content']}
-
-**Reflection:** How does this wisdom resonate with your journey?"""
+            response = f"**{primary_topic['title']}**\n\n{primary_topic['content']}\n\n**Reflection:** How does this wisdom resonate with your journey?"
 
         return response
     
-    def _generate_spiritual_support(self, user_input, mode):
-        """Provide spiritual support with practical wisdom"""
-        
+    def _generate_support(self, user_input, mode):
         support_responses = [
-            """I hear your difficulty. Remember: "This too shall pass."
-
-**Immediate Practice:**
-1. Take three conscious breaths 🌬️
-2. Repeat: "I am the soul, not this difficulty"
-3. Find one small act of kindness
-
-Would you like a specific meditation practice?""",
-            
-            """Your feelings are sacred ground for growth.
-
-**Perspective Shift:**
-- See this as soul-strengthening
-- Each challenge prepares you for higher consciousness
-- Your resilience builds spiritual muscle
-
-What aspect feels heaviest? Let's address it.""",
+            "I hear your difficulty. Remember: This too shall pass. Take three conscious breaths and find one small act of kindness today. 🌬️",
+            "Your feelings are sacred ground for growth. See this challenge as soul-strengthening. What aspect feels heaviest? 🌱",
         ]
-        
         return random.choice(support_responses)
     
-    def _generate_practical_guidance(self, user_input, mode):
-        """Provide actionable spiritual guidance"""
-        
+    def _generate_guidance(self, user_input, mode):
         guidance_responses = [
-            """**Based on Jain Wisdom:**
-
-🌅 **Morning** (20-30 mins)
-- Navkar Mantra with meditation
-- Set Ahimsa intention
-
-☀️ **Daily Integration**
-- Mindful eating with gratitude
-- Three conscious breathing breaks
-
-🌙 **Evening** (10-15 mins)
-- Review thoughts, words, actions
-- Practice forgiveness
-
-Which area to develop first?""",
-            
-            """**For Spiritual Progress:**
-
-📚 **Study** - One Jain principle daily
-🧘 **Practice** - 15-min meditation  
-💖 **Application** - Practice compassion
-🌱 **Growth** - Identify one attachment to release
-
-**Weekly Check-in:** What insights emerged?""",
+            "**Daily Practice:** Morning meditation, mindful eating, evening reflection. Which area to develop first? 🌅",
+            "**For Progress:** Study one principle daily, practice 15-min meditation, apply compassion. What calls to you? 📚",
         ]
-        
         return random.choice(guidance_responses)
     
     def _generate_contextual_response(self, user_input, mode):
-        """Generate intelligent contextual responses"""
-        
         contextual_responses = [
-            """That's thoughtful. The Jain path invites us to consider:
-
-• **Anekantavada** - Multiple perspectives reveal truths
-• **Ahimsa** - Respond with compassion
-• **Self-Study** - What can this teach about your journey
-
-Would exploring any angle be helpful?""",
-            
-            """Your inquiry touches meaningful territory. Ancient wisdom suggests:
-
-Understanding emerges through:
-1. **Contemplation** of truths
-2. **Dialogue** with perspectives  
-3. **Experience** of practice
-
-Which approach calls to you?""",
+            "That's thoughtful. Consider multiple perspectives (Anekantavada) and respond with compassion (Ahimsa). Would exploring any angle help? 🔶",
+            "Your inquiry touches meaningful territory. Understanding comes through contemplation, dialogue, and experience. Which approach calls to you? 💭",
         ]
-        
         return random.choice(contextual_responses)
 
 # ======================
-# SIMPLIFIED UI COMPONENTS
+# UI COMPONENTS
 # ======================
 
 class SimpleUI:
     def __init__(self):
         self.knowledge_memory = JainKnowledgeMemory()
-        self.response_engine = AdvancedResponseEngine(self.knowledge_memory)
+        self.response_engine = ResponseEngine(self.knowledge_memory)
         
     def render_header(self):
-        """Render beautiful header"""
         st.markdown(f"""
         <div style='
             background: linear-gradient(135deg, {COLORS['primary']}, {COLORS['accent']});
@@ -438,72 +258,54 @@ class SimpleUI:
             color: white;
             text-align: center;
         '>
-            <h1 style='color: white; margin: 0; font-size: 2.5rem;'>🌸 AI Sister Yashvi</h1>
-            <p style='font-size: 1.2rem; margin: 0.5rem 0; opacity: 0.9;'>Jain Spiritual Companion</p>
+            <h1 style='color: white; margin: 0;'>🌸 AI Sister Yashvi</h1>
+            <p style='margin: 0.5rem 0;'>Jain Spiritual Companion</p>
             <div style='
                 background: rgba(255,255,255,0.2);
                 padding: 0.5rem 1rem;
                 border-radius: 50px;
                 display: inline-block;
-                margin-top: 0.5rem;
             '>
-                <span style='color: {COLORS['secondary']};'>🕊️ 100% Open Source • No Dependencies</span>
+                <span>🕊️ Open Source • No Dependencies</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
     
     def render_sidebar(self):
-        """Render simplified sidebar"""
         with st.sidebar:
-            st.markdown(f"""
-            <div style='
-                background: {COLORS['surface']};
-                padding: 1.5rem;
-                border-radius: 15px;
-                margin-bottom: 1rem;
-                border: 1px solid {COLORS['primary']}20;
-            '>
-                <h3 style='color: {COLORS['primary']}; margin: 0;'>⚡ Features</h3>
-                <p style='color: {COLORS["text_light"]}; margin: 0.5rem 0 0 0; font-size: 0.9rem;'>
-                    Jain Knowledge • Local AI • Voice Support
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown("### ⚙️ Configuration")
             
-            # Conversation Style
-            st.markdown("### 🎭 Conversation Style")
             mode = st.radio(
-                "",
+                "Conversation Style:",
                 ["Quick Chat", "Deep Dialogue"],
-                index=0,
-                label_visibility="collapsed"
+                index=0
             )
             
             st.markdown("---")
             
-            # Language Selection
-            st.markdown("### 🌐 Language")
             selected_lang = st.selectbox(
-                "Select Language",
-                list(LANG_MAP.keys()),
-                label_visibility="collapsed"
+                "Language:",
+                list(LANG_MAP.keys())
             )
             
             st.markdown("---")
             
-            # Quick Wisdom Access
-            st.markdown("### 📚 Quick Wisdom")
-            if st.button("Ahimsa Guide", use_container_width=True):
-                st.session_state.quick_wisdom = "ahimsa"
-            if st.button("Meditation Tips", use_container_width=True):
-                st.session_state.quick_wisdom = "meditation"
-            if st.button("Daily Routine", use_container_width=True):
-                st.session_state.quick_wisdom = "daily_routine"
-                
+            st.markdown("### 📚 Quick Access")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Ahimsa"):
+                    st.session_state.quick_topic = "ahimsa"
+                if st.button("Meditation"):
+                    st.session_state.quick_topic = "meditation"
+            with col2:
+                if st.button("Prayers"):
+                    st.session_state.quick_topic = "prayers"
+                if st.button("Daily Routine"):
+                    st.session_state.quick_topic = "daily_routine"
+            
             st.markdown("---")
             
-            # Clear History
-            if st.button("🔄 New Conversation", use_container_width=True, type="secondary"):
+            if st.button("🔄 Clear Chat"):
                 st.session_state.chat_history = []
                 st.session_state.voice_prompt = ""
                 st.rerun()
@@ -511,28 +313,24 @@ class SimpleUI:
             return mode, LANG_MAP[selected_lang]
     
     def render_chat_interface(self, mode, lang_code):
-        """Render chat interface"""
-        
-        # Initialize session state
         if "chat_history" not in st.session_state:
             st.session_state.chat_history = []
         if "voice_prompt" not in st.session_state:
             st.session_state.voice_prompt = ""
-        if "quick_wisdom" not in st.session_state:
-            st.session_state.quick_wisdom = None
+        if "quick_topic" not in st.session_state:
+            st.session_state.quick_topic = None
             
-        # Handle quick wisdom buttons
-        if st.session_state.quick_wisdom:
-            wisdom_map = {
-                "ahimsa": "Tell me about Ahimsa and how to practice it",
-                "meditation": "What are the Jain meditation techniques?",
-                "daily_routine": "What is the ideal daily spiritual routine?"
+        if st.session_state.quick_topic:
+            topic_map = {
+                "ahimsa": "Tell me about Ahimsa",
+                "meditation": "What are Jain meditation techniques?",
+                "prayers": "Teach me about Jain prayers",
+                "daily_routine": "What is the ideal daily routine?"
             }
-            user_input = wisdom_map[st.session_state.quick_wisdom]
-            st.session_state.quick_wisdom = None
+            user_input = topic_map[st.session_state.quick_topic]
+            st.session_state.quick_topic = None
             self.process_user_input(user_input, mode, lang_code)
             
-        # Chat container
         chat_container = st.container(height=500)
         
         with chat_container:
@@ -542,11 +340,9 @@ class SimpleUI:
                 for msg in st.session_state.chat_history:
                     self.render_message(msg)
         
-        # Input area
         self.render_input_area(lang_code, mode)
     
     def render_welcome_message(self):
-        """Render beautiful welcome message"""
         st.markdown(f"""
         <div style='
             background: {COLORS['surface']};
@@ -554,44 +350,36 @@ class SimpleUI:
             border-radius: 20px;
             text-align: center;
             margin: 2rem 0;
-            border: 2px dashed {COLORS['primary']}20;
         '>
             <div style='font-size: 4rem; margin-bottom: 1rem;'>🌸</div>
-            <h3 style='color: {COLORS['primary']}; margin: 0;'>Welcome to Jain Wisdom</h3>
-            <p style='color: {COLORS["text_light"]}; margin: 1rem 0;'>
-                I am Yashvi, your AI spiritual companion powered by authentic Jain knowledge.
-            </p>
+            <h3 style='color: {COLORS['primary']};'>Welcome to Jain Wisdom</h3>
+            <p>I am Yashvi, your AI spiritual companion with authentic Jain knowledge.</p>
             <div style='
                 background: {COLORS['background']};
                 padding: 1rem;
                 border-radius: 10px;
                 margin: 1rem 0;
-                text-align: left;
             '>
                 <strong>Ask me about:</strong><br>
                 • Jain philosophy and principles<br>
                 • Meditation and spiritual practices<br>  
-                • Daily routines and ethical living<br>
-                • Scriptures and prayers
+                • Daily routines and ethical living
             </div>
-            <p style='color: {COLORS["secondary"]}; font-style: italic;'>
-                "Jai Jinendra! How may I serve your spiritual growth today?"
-            </p>
+            <p style='color: {COLORS["secondary"]};'>"Jai Jinendra! How may I serve your spiritual growth?"</p>
         </div>
         """, unsafe_allow_html=True)
     
     def render_message(self, msg):
-        """Render beautiful chat messages"""
         if msg["role"] == "User":
             st.markdown(f"""
             <div style='
-                background: linear-gradient(135deg, {COLORS['primary']}20, {COLORS['accent']}20);
+                background: {COLORS['primary']}20;
                 padding: 1rem;
                 border-radius: 15px 15px 5px 15px;
                 margin: 0.5rem 0;
                 border-left: 4px solid {COLORS['primary']};
             '>
-                <div style='color: {COLORS["text"]};'>{msg["content"]}</div>
+                {msg["content"]}
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -603,37 +391,32 @@ class SimpleUI:
                 margin: 0.5rem 0;
                 border: 1px solid {COLORS['background']};
             '>
-                <div style='color: {COLORS["text"]}; line-height: 1.6;'>{msg["content"]}</div>
+                {msg["content"]}
             </div>
             """, unsafe_allow_html=True)
     
     def render_input_area(self, lang_code, mode):
-        """Render input area"""
-        
         col1, col2 = st.columns([1, 4])
         
         with col1:
-            if st.button("🎙️ Voice", use_container_width=True, type="secondary"):
+            if st.button("🎙️ Voice", use_container_width=True):
                 self.listen_for_speech(lang_code)
                 
         with col2:
             user_input = st.chat_input("Ask about Jain wisdom...")
             
-        # Process voice input
         if st.session_state.voice_prompt:
             user_input = st.session_state.voice_prompt
-            st.info(f"🎤 **Voice**: {user_input}")
+            st.info(f"🎤 Voice: {user_input}")
             st.session_state.voice_prompt = ""
             
-        # Process input
         if user_input:
             self.process_user_input(user_input, mode, lang_code)
     
     def listen_for_speech(self, lang_code):
-        """Voice input"""
         r = sr.Recognizer()
         
-        with st.spinner("🎤 Listening..."):
+        with st.spinner("Listening..."):
             try:
                 with sr.Microphone() as source:
                     r.adjust_for_ambient_noise(source)
@@ -645,37 +428,29 @@ class SimpleUI:
                 
             except sr.WaitTimeoutError:
                 st.warning("No speech detected")
-            except Exception as e:
+            except Exception:
                 st.error("Voice service unavailable")
     
     def process_user_input(self, user_input, mode, lang_code):
-        """Process user input"""
-        
-        # Add user message to history
         st.session_state.chat_history.append({
             "role": "User", 
             "content": user_input
         })
         
-        # Generate intelligent response
-        with st.spinner("🌱 Consulting wisdom..."):
-            response = self.response_engine.generate_intelligent_response(
+        with st.spinner("Yashvi is thinking..."):
+            response = self.response_engine.generate_response(
                 user_input, mode, lang_code
             )
             
-            # Add AI response to history
             st.session_state.chat_history.append({
                 "role": "Yashvi",
                 "content": response
             })
             
-            # Generate speech
             self.generate_speech(response, lang_code)
-            
             st.rerun()
     
     def generate_speech(self, text, lang_code):
-        """Generate TTS"""
         try:
             audio_b64 = get_tts_base64(text, lang_code)
             if audio_b64:
@@ -684,14 +459,13 @@ class SimpleUI:
             pass
 
 # ======================
-# HELPER FUNCTIONS  
+# HELPER FUNCTIONS
 # ======================
 
-def get_tts_base64(text: str, lang_code: str) -> str:
-    """Convert text to speech"""
+def get_tts_base64(text, lang_code):
     try:
         mp3_fp = io.BytesIO()
-        tts = gTTS(text=text, lang=lang_code, tld="com", slow=False)
+        tts = gTTS(text=text, lang=lang_code, slow=False)
         tts.write_to_fp(mp3_fp)
         mp3_fp.seek(0)
         return base64.b64encode(mp3_fp.read()).decode()
@@ -699,7 +473,6 @@ def get_tts_base64(text: str, lang_code: str) -> str:
         return ""
 
 def autoplay_audio(audio_base64_data):
-    """Auto-play audio"""
     md = f"""
     <audio controls autoplay style="display:none">
     <source src="data:audio/mp3;base64,{audio_base64_data}" type="audio/mp3">
@@ -708,11 +481,10 @@ def autoplay_audio(audio_base64_data):
     st.markdown(md, unsafe_allow_html=True)
 
 # ======================
-# STREAMLIT APP
+# MAIN APP
 # ======================
 
 def main():
-    # Page configuration
     st.set_page_config(
         page_title="AI Sister Yashvi",
         page_icon="🌸",
@@ -720,51 +492,33 @@ def main():
         initial_sidebar_state="expanded"
     )
     
-    # Custom CSS
     st.markdown(f"""
     <style>
     .stApp {{
         background-color: {COLORS['background']};
     }}
-    
     .stSidebar {{
-        background: linear-gradient(180deg, {COLORS['surface']} 0%, {COLORS['background']} 100%);
+        background: {COLORS['surface']};
     }}
-    
     .stButton>button {{
-        background: linear-gradient(135deg, {COLORS['primary']}, {COLORS['accent']});
+        background: {COLORS['primary']};
         color: white;
         border: none;
         border-radius: 10px;
-        padding: 0.75rem 1rem;
-        font-weight: 500;
-    }}
-    
-    .stButton>button:hover {{
-        background: linear-gradient(135deg, {COLORS['accent']}, {COLORS['primary']});
-    }}
-    
-    .stTextInput>div>div>input {{
-        border: 2px solid {COLORS['primary']}20;
-        border-radius: 15px;
-        padding: 1rem;
     }}
     </style>
     """, unsafe_allow_html=True)
     
-    # Initialize UI
-    simple_ui = SimpleUI()
-    
-    # Render interface
-    simple_ui.render_header()
+    ui = SimpleUI()
+    ui.render_header()
     
     col1, col2 = st.columns([1, 2])
     
     with col1:
-        mode, lang_code = simple_ui.render_sidebar()
+        mode, lang_code = ui.render_sidebar()
         
     with col2:
-        simple_ui.render_chat_interface(mode, lang_code)
+        ui.render_chat_interface(mode, lang_code)
 
 if __name__ == "__main__":
     main()
