@@ -36,6 +36,7 @@ ADMIN_PASSWORD = "100370"
 
 # --- Additional Jain Knowledge Sources ---
 JAIN_KNOWLEDGE_SOURCES = {
+    "Digital Jain Pathshala Blogs": "https://digitaljainpathshala.org/blogs",
     "Jain eLibrary": "https://www.jainelibrary.org",
     "JainQQ": "https://www.jainqq.org",
     "JainWorld": "https://www.jainworld.com",
@@ -47,6 +48,37 @@ JAIN_KNOWLEDGE_SOURCES = {
     "Jain Scriptures": "https://www.jainscriptures.com",
     "Jain Meditation": "https://www.jainmeditation.org"
 }
+
+# --- Digital Jain Pathshala Specific Content ---
+DIGITAL_JAIN_PATHSHALA_CONTENT = """
+Digital Jain Pathshala - Key Spiritual Topics:
+
+• Ayambil and Spiritual Fasting:
+  - Ayambil is a Jain spiritual practice of eating only one meal per day
+  - Food consists of boiled grains without salt, spices, oil, or any tasty ingredients
+  - Practice of Ras Parityag (renunciation of taste)
+  - Performed during Navpad Oli festivals
+
+• Navpad Oli:
+  - Nine-day festival occurring twice yearly in Chaitra and Ashwin months
+  - Each day dedicated to one of the nine supreme posts (Navpad)
+  - Spiritual focus on self-discipline and purification
+
+• Jain Meditation Techniques:
+  - Preksha Meditation for self-awareness
+  - Samayik for equanimity
+  - Kayotsarg for relaxation and detachment
+
+• Daily Spiritual Practices:
+  - Navkar Mantra chanting
+  - Pratikraman for introspection
+  - Fasting for spiritual purification
+
+• Core Jain Principles:
+  - Ahimsa (Non-violence) in thought, word, and action
+  - Anekantavada (Multiple viewpoints)
+  - Aparigraha (Non-possessiveness)
+"""
 
 def initialize_user_session():
     """Initializes session state variables if they don't exist."""
@@ -366,6 +398,8 @@ def get_jain_knowledge_context():
     for source_name, source_url in JAIN_KNOWLEDGE_SOURCES.items():
         sources_context += f"• {source_name}: {source_url}\n"
     
+    sources_context += f"\n\n{DIGITAL_JAIN_PATHSHALA_CONTENT}"
+    
     sources_context += """
     
 IMPORTANT JAIN CONCEPTS TO REFERENCE WHEN RELEVANT:
@@ -569,10 +603,10 @@ def render_sidebar():
         st.subheader("📖 Resources")
         st.info("""
         **Authentic Jain Sources:**
+        • Digital Jain Pathshala
         • Jain eLibrary
         • JainQQ
         • JainWorld
-        • HereNow4U
         """)
 
 def render_chat_page():
@@ -657,7 +691,7 @@ def render_chat_page():
     
     col1, col2 = st.columns([4, 1])
     with col1:
-        st.info("💡 You can ask in English or Gujarati • 📚 Responses based on authentic Jain sources")
+        st.info("💡 You can ask in English or Gujarati • 📚 Responses based on authentic Jain sources including Digital Jain Pathshala")
     with col2:
         send_clicked = st.button("🚀 Send Question", use_container_width=True, type="primary")
     
@@ -675,13 +709,51 @@ def render_learn_page():
     </div>
     """, unsafe_allow_html=True)
     
-    # Jain Knowledge Sources
-    st.markdown("### 🏛️ Authentic Jain Sources")
+    # Highlight Digital Jain Pathshala
+    st.markdown("### 🌟 Featured Resource: Digital Jain Pathshala")
+    
+    with st.expander("📖 Digital Jain Pathshala Blogs - Complete Spiritual Guide", expanded=True):
+        st.markdown(f"""
+        **Website:** [https://digitaljainpathshala.org/blogs](https://digitaljainpathshala.org/blogs)
+        
+        **Key Spiritual Topics Covered:**
+        
+        • **Ayambil and Spiritual Fasting:**
+          - Practice of eating one meal per day with boiled grains
+          - No salt, spices, oil, or tasty ingredients
+          - Ras Parityag (renunciation of taste)
+          - Performed during Navpad Oli festivals
+        
+        • **Navpad Oli:**
+          - Nine-day festivals in Chaitra and Ashwin months
+          - Each day dedicated to one of nine supreme posts
+          - Focus on self-discipline and purification
+        
+        • **Jain Meditation Techniques:**
+          - Preksha Meditation for self-awareness
+          - Samayik for equanimity
+          - Kayotsarg for relaxation
+        
+        • **Daily Spiritual Practices:**
+          - Navkar Mantra chanting
+          - Pratikraman for introspection
+          - Fasting for purification
+        
+        **Digital Jain Pathshala provides comprehensive guidance on:**
+        - Jain philosophy and principles
+        - Spiritual practices and rituals
+        - Meditation techniques
+        - Fasting methods and benefits
+        - Daily spiritual routines
+        """)
+    
+    # Other Jain Knowledge Sources
+    st.markdown("### 🏛️ Additional Authentic Jain Sources")
     
     sources_col1, sources_col2 = st.columns(2)
     
     with sources_col1:
-        for i, (source_name, source_url) in enumerate(list(JAIN_KNOWLEDGE_SOURCES.items())[:5]):
+        for i, (source_name, source_url) in enumerate(list(JAIN_KNOWLEDGE_SOURCES.items())[1:6]):  # Skip first (Digital Jain Pathshala)
             with st.expander(f"📖 {source_name}", expanded=i==0):
                 st.markdown(f"""
                 **Website:** [{source_url}]({source_url})
@@ -690,7 +762,7 @@ def render_learn_page():
                 """)
     
     with sources_col2:
-        for i, (source_name, source_url) in enumerate(list(JAIN_KNOWLEDGE_SOURCES.items())[5:]):
+        for i, (source_name, source_url) in enumerate(list(JAIN_KNOWLEDGE_SOURCES.items())[6:]):
             with st.expander(f"📖 {source_name}", expanded=i==0):
                 st.markdown(f"""
                 **Website:** [{source_url}]({source_url})
@@ -750,7 +822,7 @@ def render_settings_page():
         
         **Features:**
         🌟 Multi-language support (English & Gujarati)
-        📚 Based on authentic Jain sources
+        📚 Based on authentic Jain sources including Digital Jain Pathshala
         💬 Easy-to-understand pointwise answers
         🛡️ Content safety and appropriateness
         """)
