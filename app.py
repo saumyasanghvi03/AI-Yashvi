@@ -5,32 +5,30 @@ import tempfile
 import os
 import shutil
 from git import Repo
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
-# Safe import approach at the top of your file
-try:
-    from langchain_core.prompts import PromptTemplate
-except ImportError:
-    try:
-        from langchain.prompts import PromptTemplate
-    except ImportError:
-        from langchain import PromptTemplate
 
+# --- SAFE IMPORTS WITH FALLBACKS ---
 try:
+    # Try new import locations first
+    from langchain_community.document_loaders import DirectoryLoader, TextLoader
     from langchain_text_splitters import RecursiveCharacterTextSplitter
+    from langchain_community.vectorstores import FAISS
+    from langchain_community.llms import Ollama
+    from langchain_community.embeddings import HuggingFaceEmbeddings
+    from langchain_core.prompts import PromptTemplate
+    from langchain.chains import RetrievalQA
 except ImportError:
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
-# --- FREE/LOCAL IMPORTS ---
-from langchain_community.llms import Ollama
-from langchain_community.embeddings import HuggingFaceEmbeddings
-# --- END FREE IMPORTS ---
-
-# --- FIXED PROMPT TEMPLATE IMPORT ---
-from langchain_core.prompts import PromptTemplate
-# --- END FIXED IMPORT ---
-
-from langchain.chains import RetrievalQA
+    # Fall back to old import locations
+    try:
+        from langchain.document_loaders import DirectoryLoader, TextLoader
+        from langchain.text_splitter import RecursiveCharacterTextSplitter
+        from langchain.vectorstores import FAISS
+        from langchain.llms import Ollama
+        from langchain.embeddings import HuggingFaceEmbeddings
+        from langchain.prompts import PromptTemplate
+        from langchain.chains import RetrievalQA
+    except ImportError as e:
+        st.error(f"Failed to import required LangChain modules: {e}")
+        st.stop()
 
 # --- Configuration ---
 st.set_page_config(page_title="Jain Yuva Bot (RAG)", page_icon="🙏")
@@ -129,10 +127,17 @@ def create_qa_chain(vector_store):
     """Creates the RAG query chain using local LLM."""
     try:
         # Use Ollama with a free local model
-        llm = Ollama(
-            model="llama2",  # Make sure this model is installed via Ollama
-            temperature=0.3
-        )
+        # Note: Ollama might not work on Streamlit Cloud, so we'll add a fallback
+        try:
+            llm = Ollama(
+                model="llama2",
+                temperature=0.3
+            )
+        except Exception as ollama_error:
+            st.warning(f"Ollama not available: {ollama_error}. Using a simple fallback.")
+            # Create a simple fallback LLM
+            from langchain.llms.fake import FakeListLLM
+            llm = FakeListLLM(responses=["I'm currently unable to process questions due to technical limitations. Please try again later."])
         
         # Custom prompt for Jain Bot
         prompt_template = """
@@ -170,7 +175,6 @@ def create_qa_chain(vector_store):
         return qa_chain
     except Exception as e:
         st.error(f"Error creating QA chain: {e}")
-        st.info("Make sure you have Ollama installed and running. Visit https://ollama.ai/ for installation instructions.")
         return None
 
 # --- Streamlit App UI ---
@@ -194,7 +198,11 @@ if "qa_chain" not in st.session_state or st.session_state.qa_chain is None:
         vector_store = load_repo_and_build_store()
         if vector_store:
             st.session_state.qa_chain = create_qa_chain(vector_store)
-            st.success("Knowledge base loaded successfully!")
+            if st.session_state.qa_chain:
+                st.success("Knowledge base loaded successfully!")
+            else:
+                st.error("Failed to create QA chain. The app cannot start.")
+                st.stop()
         else:
             st.error("Failed to load the knowledge base. The app cannot start.")
             st.stop()
