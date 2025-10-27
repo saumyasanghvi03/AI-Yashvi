@@ -26,12 +26,13 @@ BYTEZ_API_KEY = "90d252f09c55cacf3dcc914b5bb4ac01"
 
 # --- Rate Limiting Logic ---
 IST = pytz.timezone('Asia/Kolkata')
+DAILY_QUESTION_LIMIT = 10  # Increased from 5 to 10
 
 def initialize_user_session():
     """Initializes session state variables if they don't exist."""
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Welcome to Jain Yuva Bot (JYB)! 🙏\n\nI'm an expert on the AI-Yashvi repository. Ask me anything about its content.\n\n*Powered by Bytez AI models*"}
+            {"role": "assistant", "content": "Welcome to Jain Yuva Bot (JYB)! 🙏\n\nI'm an expert on the AI-Yashvi repository. Ask me anything about Jain philosophy, concepts, or the repository content.\n\n*Powered by Bytez AI models*"}
         ]
     
     if "question_count" not in st.session_state:
@@ -53,11 +54,11 @@ def check_and_reset_limit():
     if st.session_state.last_reset_date < today_ist:
         st.session_state.question_count = 0
         st.session_state.last_reset_date = today_ist
-        st.info("Your daily question limit has been reset. You can ask up to 5 questions.")
+        st.success("🎉 Your daily question limit has been reset! You can ask up to 10 questions today.")
 
 def get_remaining_questions():
     """Returns the number of questions remaining."""
-    return 5 - st.session_state.question_count
+    return DAILY_QUESTION_LIMIT - st.session_state.question_count
 
 def initialize_bytez_model():
     """Initialize Bytez SDK and model with fallback options."""
@@ -207,11 +208,61 @@ def call_bytez_model(model, messages):
     except Exception as e:
         return f"Exception calling model: {str(e)}", None
 
+def refine_answer_format(answer):
+    """
+    Refines the answer format to ensure proper structure and markdown formatting.
+    """
+    # Clean up common formatting issues
+    refined = answer.strip()
+    
+    # Ensure proper markdown headers
+    refined = re.sub(r'^(\d+\.)\s*', r'## \1 ', refined, flags=re.MULTILINE)
+    refined = re.sub(r'^(###?\s+.+)$', r'\1\n', refined, flags=re.MULTILINE)
+    
+    # Ensure bullet points are properly formatted
+    refined = re.sub(r'^-\s*', '- ', refined, flags=re.MULTILINE)
+    refined = re.sub(r'^\*\s*', '- ', refined, flags=re.MULTILINE)
+    
+    # Add spacing between sections
+    refined = re.sub(r'\n(## )', r'\n\n\1', refined)
+    
+    return refined
+
+def detect_question_quality(question):
+    """
+    Detects if the question is well-structured and comprehensive.
+    Returns a quality score and suggestions for improvement.
+    """
+    quality_score = 0
+    suggestions = []
+    
+    # Check question length
+    if len(question.split()) >= 5:
+        quality_score += 1
+    else:
+        suggestions.append("Try asking more detailed questions for better answers")
+    
+    # Check for specific question words
+    question_words = ['what', 'how', 'why', 'explain', 'describe', 'compare', 'difference']
+    if any(word in question.lower() for word in question_words):
+        quality_score += 1
+    else:
+        suggestions.append("Use question words like 'what', 'how', or 'why' for clearer answers")
+    
+    # Check for context or specificity
+    if any(word in question.lower() for word in ['jain', 'philosophy', 'concept', 'principle']):
+        quality_score += 1
+    
+    return quality_score, suggestions
+
 def get_ai_response(question, documents, bytez_model):
     """
     Gets relevant context and calls Bytez model for response.
     """
     try:
+        # Analyze question quality
+        quality_score, suggestions = detect_question_quality(question)
+        
         # Search for relevant documents
         relevant_docs = search_in_repo(question, documents, max_results=3)
         
@@ -219,55 +270,62 @@ def get_ai_response(question, documents, bytez_model):
         context = "\n\n".join([doc['content'] for doc in relevant_docs])
         
         # Enhanced system prompt for refined answers
+        base_prompt = """You are Jain Yuva Bot (JYB), an AI assistant with deep expertise in Jainism and the AI-Yashvi repository.
+
+YOUR RESPONSE FORMAT REQUIREMENTS:
+- Use proper Markdown formatting with headers (##, ###)
+- Structure your answer with clear, logical sections
+- Include bullet points for lists and key points
+- Use **bold** for important terms and concepts
+- Provide comprehensive coverage of the topic
+- Include practical applications and contemporary relevance
+- Conclude with a summary or key takeaways
+- Use emojis sparingly for visual organization (🌍, 📚, 🙏, etc.)
+
+IMPORTANT: Your answer should be well-structured, comprehensive, and academically rigorous while remaining accessible."""
+
         if context.strip():
-            system_prompt = f"""You are Jain Yuva Bot (JYB), an AI assistant with deep expertise in Jainism and the AI-Yashvi repository.
+            system_prompt = f"""{base_prompt}
 
 CONTEXT FROM REPOSITORY:
 {context}
 
-INSTRUCTIONS FOR YOUR RESPONSE:
-1. FIRST, check if the question can be answered using the CONTEXT above
-2. If CONTEXT has relevant information, base your answer primarily on it
-3. If CONTEXT is insufficient, supplement with your comprehensive knowledge of Jainism
-4. Structure your answer with clear sections using markdown formatting
-5. Use proper headings (##), bullet points, and emphasis for key terms
-6. Include these elements when relevant:
-   - Fundamental Concepts
-   - Detailed Explanations  
-   - Scriptural References
-   - Practical Applications
-   - Contemporary Relevance
-   - Summary
-
-7. Be comprehensive yet accessible, academic yet practical
-8. Always conclude with practical spiritual insights
-9. Use emojis sparingly for visual organization (🌍, 📚, 🙏, etc.)
+INSTRUCTIONS:
+1. FIRST prioritize information from the CONTEXT above
+2. If CONTEXT is insufficient, supplement with your comprehensive knowledge
+3. Structure your answer with these typical sections:
+   - ## Core Concept & Definition
+   - ## Detailed Explanation
+   - ## Key Principles & Components
+   - ## Scriptural References & Sources
+   - ## Practical Applications
+   - ## Contemporary Relevance
+   - ## Summary & Key Takeaways
 
 QUESTION: {question}
 
-Provide a well-structured, comprehensive answer:"""
+Provide a comprehensive, well-structured answer:"""
         else:
-            system_prompt = f"""You are Jain Yuva Bot (JYB), an AI assistant with deep expertise in Jainism.
+            system_prompt = f"""{base_prompt}
 
 QUESTION: {question}
 
-INSTRUCTIONS FOR YOUR RESPONSE:
-1. Provide a comprehensive, well-structured answer using your knowledge of Jainism
-2. Structure your answer with clear sections using markdown formatting
-3. Use proper headings (##), bullet points, and emphasis for key terms
-4. Include these elements when relevant:
-   - Fundamental Concepts
-   - Detailed Explanations
-   - Scriptural References  
-   - Practical Applications
-   - Contemporary Relevance
-   - Summary
+INSTRUCTIONS:
+1. Provide a comprehensive answer using your deep knowledge of Jainism
+2. Structure your answer with these typical sections:
+   - ## Core Concept & Definition
+   - ## Detailed Explanation  
+   - ## Key Principles & Components
+   - ## Scriptural References & Sources
+   - ## Practical Applications
+   - ## Contemporary Relevance
+   - ## Summary & Key Takeaways
 
-5. Be comprehensive yet accessible, academic yet practical
-6. Always conclude with practical spiritual insights
-7. Use emojis sparingly for visual organization (🌍, 📚, 🙏, etc.)
+Provide a comprehensive, well-structured answer:"""
 
-Provide a well-structured, comprehensive answer:"""
+        # Add quality-based enhancements for good questions
+        if quality_score >= 2:
+            system_prompt += "\n\nADDITIONAL NOTE: This appears to be a well-structured question. Please provide an especially detailed and comprehensive answer with deeper insights and practical applications."
 
         # Prepare messages for the model
         messages = [
@@ -285,14 +343,16 @@ Provide a well-structured, comprehensive answer:"""
         error, output = call_bytez_model(bytez_model, messages)
         
         if error:
-            return f"Error: {error}", relevant_docs
+            return f"Error: {error}", relevant_docs, suggestions
         elif output:
-            return output, relevant_docs
+            # Refine the answer format
+            refined_output = refine_answer_format(output)
+            return refined_output, relevant_docs, suggestions
         else:
-            return "No response received from the AI model.", relevant_docs
+            return "No response received from the AI model.", relevant_docs, suggestions
         
     except Exception as e:
-        return f"Error processing your question: {str(e)}", []
+        return f"Error processing your question: {str(e)}", [], []
 
 # --- Streamlit App UI ---
 
@@ -304,7 +364,7 @@ check_and_reset_limit()
 st.title("Welcome to Jain Yuva Bot (JYB)! 🙏")
 st.caption(f"✨ Expert on the [`AI-Yashvi` GitHub repository]({REPO_URL}). ✨")
 st.markdown("""
-Ask any questions about its knowledge files!
+Ask any questions about Jain philosophy, concepts, or the repository content!
 
 **🚀 Powered by Bytez AI Models**
 """)
@@ -342,10 +402,10 @@ remaining = get_remaining_questions()
 st.info(f"**Note:** You can ask up to **{remaining}** more question(s) today. Your daily limit resets at midnight IST.")
 
 # Chat input
-if prompt := st.chat_input("Ask your question..."):
+if prompt := st.chat_input("Ask your question about Jainism..."):
     
-    if st.session_state.question_count >= 5:
-        st.warning("You have reached your daily limit of 5 questions. Please come back tomorrow!")
+    if st.session_state.question_count >= DAILY_QUESTION_LIMIT:
+        st.warning(f"🚫 You have reached your daily limit of {DAILY_QUESTION_LIMIT} questions. Please come back tomorrow!")
     else:
         # Add user message to session state
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -359,7 +419,7 @@ if prompt := st.chat_input("Ask your question..."):
         with st.spinner("🤔 JYB is thinking..."):
             try:
                 # Get AI response using Bytez
-                bot_response, source_docs = get_ai_response(
+                bot_response, source_docs, suggestions = get_ai_response(
                     prompt, 
                     st.session_state.repo_content, 
                     st.session_state.bytez_model
@@ -372,6 +432,10 @@ if prompt := st.chat_input("Ask your question..."):
                 with chat_container:
                     with st.chat_message("assistant"):
                         st.markdown(bot_response)
+                        
+                        # Show question quality feedback for good questions
+                        if len(suggestions) == 0:
+                            st.success("🌟 Great question! You received a comprehensive answer.")
                         
                         # Display sources if available
                         if source_docs:
@@ -398,4 +462,4 @@ if prompt := st.chat_input("Ask your question..."):
 
 # --- Footer ---
 st.markdown("---")
-st.markdown("Built with ❤️ for the Jain community | Powered by [Bytez](https://bytez.com/)")
+st.markdown("**Powered by Digital Jain Pathshala, made by Saumya Sanghvi: [https://linkedin.com/in/ssanghvi03](https://linkedin.com/in/ssanghvi03)**")
