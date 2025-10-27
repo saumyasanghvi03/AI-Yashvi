@@ -7,8 +7,6 @@ import shutil
 from git import Repo
 import glob
 import re
-import requests
-from bs4 import BeautifulSoup
 
 # --- Bytez SDK Import ---
 try:
@@ -543,7 +541,10 @@ def render_sidebar():
             st.metric("Questions", st.session_state.question_count)
         with col2:
             remaining = get_remaining_questions()
-            st.metric("Remaining", remaining)
+            if isinstance(remaining, str):
+                st.metric("Remaining", remaining)
+            else:
+                st.metric("Remaining", remaining)
         
         # Admin Section
         st.markdown("---")
@@ -576,16 +577,6 @@ def render_sidebar():
 
 def render_chat_page():
     """Renders the main chat interface."""
-    st.markdown("""
-    <style>
-    .main-chat-container {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 1rem;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
     # Header with quick actions
     col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
@@ -735,7 +726,11 @@ def render_settings_page():
         
         st.metric("Daily Question Limit", DAILY_QUESTION_LIMIT)
         st.metric("Questions Asked Today", st.session_state.question_count)
-        st.metric("Remaining Questions", get_remaining_questions())
+        remaining = get_remaining_questions()
+        if isinstance(remaining, str):
+            st.metric("Remaining Questions", remaining)
+        else:
+            st.metric("Remaining Questions", remaining)
         
         if st.button("🔄 Reset Today's Count (Admin Only)", disabled=not st.session_state.admin_mode):
             st.session_state.question_count = 0
