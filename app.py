@@ -32,7 +32,7 @@ def initialize_user_session():
     """Initializes session state variables if they don't exist."""
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Welcome to JainQuest! 🙏\n\nEmbark on a journey through Jain philosophy. I can help you explore core concepts, ethical frameworks, cosmology, spiritual practices, and scriptural wisdom."}
+            {"role": "assistant", "content": "Welcome to JainQuest! 🙏\n\nEmbark on a journey through Jain philosophy. I can help you explore core concepts, ethical frameworks, cosmology, spiritual practices, and scriptural wisdom. I'm here to provide emotional and spiritual support from Jain perspectives."}
         ]
     
     if "question_count" not in st.session_state:
@@ -226,40 +226,35 @@ def refine_answer_format(answer):
     
     return refined
 
-def detect_question_quality(question):
+def detect_sensitive_topic(question):
     """
-    Detects if the question is well-structured and comprehensive.
-    Returns a quality score and suggestions for improvement.
+    Detects if the question involves sensitive topics that require careful handling.
     """
-    quality_score = 0
-    suggestions = []
+    sensitive_keywords = {
+        'financial': ['debt', 'money', 'loan', 'bankrupt', 'financial', 'poverty', 'poor'],
+        'medical': ['sick', 'illness', 'disease', 'pain', 'medicine', 'doctor', 'hospital'],
+        'legal': ['lawyer', 'court', 'legal', 'sue', 'lawsuit', 'arrest'],
+        'emotional': ['depressed', 'anxiety', 'stress', 'sad', 'hopeless', 'suicide'],
+        'relationship': ['divorce', 'breakup', 'cheat', 'abuse', 'violence']
+    }
     
-    # Check question length
-    if len(question.split()) >= 5:
-        quality_score += 1
-    else:
-        suggestions.append("Try asking more detailed questions for better answers")
+    detected_topics = []
+    question_lower = question.lower()
     
-    # Check for specific question words
-    question_words = ['what', 'how', 'why', 'explain', 'describe', 'compare', 'difference']
-    if any(word in question.lower() for word in question_words):
-        quality_score += 1
-    else:
-        suggestions.append("Use question words like 'what', 'how', or 'why' for clearer answers")
+    for category, keywords in sensitive_keywords.items():
+        if any(keyword in question_lower for keyword in keywords):
+            detected_topics.append(category)
     
-    # Check for context or specificity
-    if any(word in question.lower() for word in ['jain', 'philosophy', 'concept', 'principle']):
-        quality_score += 1
-    
-    return quality_score, suggestions
+    return detected_topics
 
 def get_ai_response(question, documents, bytez_model):
     """
     Gets relevant context and calls Bytez model for response.
     """
     try:
-        # Analyze question quality
+        # Analyze question quality and sensitivity
         quality_score, suggestions = detect_question_quality(question)
+        sensitive_topics = detect_sensitive_topic(question)
         
         # Search for relevant documents
         relevant_docs = search_in_repo(question, documents, max_results=3)
@@ -267,23 +262,45 @@ def get_ai_response(question, documents, bytez_model):
         # Combine context from relevant documents
         context = "\n\n".join([doc['content'] for doc in relevant_docs])
         
-        # Enhanced system prompt for refined answers
+        # Enhanced system prompt with emotional support capabilities
         base_prompt = """You are JainQuest, an AI assistant with deep expertise in Jainism.
 
-YOUR RESPONSE FORMAT REQUIREMENTS:
+ROLE AND CAPABILITIES:
+- You provide emotional and spiritual support from Jain philosophical perspectives
+- You offer guidance on applying Jain principles to life challenges
+- You help users find peace, clarity, and strength through Jain wisdom
+- You are compassionate, understanding, and supportive
+
+LIMITATIONS:
+- You are NOT a financial, legal, or medical advisor
+- You do NOT provide specific professional advice
+- You encourage seeking professional help when needed
+- You focus on spiritual and emotional well-being
+
+RESPONSE FORMAT:
 - Use proper Markdown formatting with headers (##, ###)
 - Structure your answer with clear, logical sections
 - Include bullet points for lists and key points
 - Use **bold** for important terms and concepts
-- Provide comprehensive coverage of the topic
-- Include practical applications and contemporary relevance
-- Conclude with a summary or key takeaways
-- Use emojis sparingly for visual organization (🌍, 📚, 🙏, etc.)
+- Be compassionate and understanding in tone
+- Provide practical spiritual guidance
+- Include specific Jain principles and practices
+- Conclude with hope and positive direction"""
 
-IMPORTANT: Your answer should be well-structured, comprehensive, and academically rigorous while remaining accessible."""
+        # Add sensitive topic handling
+        sensitive_handling = ""
+        if sensitive_topics:
+            sensitive_handling = f"""
+
+SENSITIVE TOPIC NOTE: This question involves {', '.join(sensitive_topics)} concerns.
+- Provide compassionate emotional and spiritual support
+- Offer Jain philosophical perspectives that might help
+- Clearly state your limitations as an AI assistant
+- Encourage seeking appropriate professional help
+- Focus on emotional resilience and inner strength"""
 
         if context.strip():
-            system_prompt = f"""{base_prompt}
+            system_prompt = f"""{base_prompt}{sensitive_handling}
 
 CONTEXT FROM REPOSITORY:
 {context}
@@ -292,38 +309,36 @@ INSTRUCTIONS:
 1. FIRST prioritize information from the CONTEXT above
 2. If CONTEXT is insufficient, supplement with your comprehensive knowledge
 3. Structure your answer with these typical sections:
-   - ## Core Concept & Definition
-   - ## Detailed Explanation
-   - ## Key Principles & Components
-   - ## Scriptural References & Sources
+   - ## Understanding Your Situation (with compassion)
+   - ## Jain Philosophical Perspectives
+   - ## Spiritual Practices for Strength
    - ## Practical Applications
-   - ## Contemporary Relevance
-   - ## Summary & Key Takeaways
+   - ## Emotional Support & Hope
+   - ## Important Considerations
 
 QUESTION: {question}
 
-Provide a comprehensive, well-structured answer:"""
+Provide compassionate, well-structured guidance:"""
         else:
-            system_prompt = f"""{base_prompt}
+            system_prompt = f"""{base_prompt}{sensitive_handling}
 
 QUESTION: {question}
 
 INSTRUCTIONS:
-1. Provide a comprehensive answer using your deep knowledge of Jainism
+1. Provide compassionate guidance using your deep knowledge of Jainism
 2. Structure your answer with these typical sections:
-   - ## Core Concept & Definition
-   - ## Detailed Explanation  
-   - ## Key Principles & Components
-   - ## Scriptural References & Sources
+   - ## Understanding Your Situation (with compassion)
+   - ## Jain Philosophical Perspectives  
+   - ## Spiritual Practices for Strength
    - ## Practical Applications
-   - ## Contemporary Relevance
-   - ## Summary & Key Takeaways
+   - ## Emotional Support & Hope
+   - ## Important Considerations
 
-Provide a comprehensive, well-structured answer:"""
+Provide compassionate, well-structured guidance:"""
 
         # Add quality-based enhancements for good questions
         if quality_score >= 2:
-            system_prompt += "\n\nADDITIONAL NOTE: This appears to be a well-structured question. Please provide an especially detailed and comprehensive answer with deeper insights and practical applications."
+            system_prompt += "\n\nADDITIONAL NOTE: This appears to be a heartfelt question. Please provide especially compassionate and detailed guidance with deep emotional support."
 
         # Prepare messages for the model
         messages = [
@@ -373,9 +388,12 @@ I can help you explore:
 - **Scriptural Wisdom**: Agamas, Tattvartha Sutra, Kalpa Sutra
 - **Historical Context**: Tirthankaras, Traditions, Modern Applications
 
+**💫 Emotional & Spiritual Support:**
+I provide compassionate guidance from Jain perspectives for life challenges, emotional well-being, and spiritual growth.
+
 **📄 Supported Repository Formats**: .txt, .md, .py, .rst, .json, .yaml, .yml
 
-Ask me anything about Jain philosophy, concepts, or practices!
+*Note: I offer philosophical and emotional support, not professional medical, financial, or legal advice.*
 """)
 
 # --- Initialize Bytez Model ---
@@ -410,8 +428,11 @@ with chat_container:
 remaining = get_remaining_questions()
 st.info(f"**Note:** You can ask up to **{remaining}** more question(s) today. Your daily limit resets at midnight IST.")
 
+# Add disclaimer
+st.caption("💭 I provide Jain philosophical guidance and emotional support. For professional medical, financial, or legal advice, please consult qualified experts.")
+
 # Chat input
-if prompt := st.chat_input("Ask your question about Jainism..."):
+if prompt := st.chat_input("Ask your question about Jainism or seek spiritual guidance..."):
     
     if st.session_state.question_count >= DAILY_QUESTION_LIMIT:
         st.warning(f"🚫 You have reached your daily limit of {DAILY_QUESTION_LIMIT} questions. Please come back tomorrow!")
@@ -444,7 +465,7 @@ if prompt := st.chat_input("Ask your question about Jainism..."):
                         
                         # Show question quality feedback for good questions
                         if len(suggestions) == 0:
-                            st.success("🌟 Great question! You received a comprehensive answer.")
+                            st.success("🌟 Thank you for sharing. I hope this guidance brings you peace and clarity.")
                         
                         # Display sources if available
                         if source_docs:
