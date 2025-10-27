@@ -232,20 +232,20 @@ def detect_question_quality(question):
 
 def detect_sensitive_topic(question):
     """
-    Detects if the question involves sensitive topics that require careful handling.
+    Detects if the question involves sensitive topics that violate Jain principles.
     """
-    sensitive_keywords = {
-        'financial': ['debt', 'money', 'loan', 'bankrupt', 'financial', 'poverty', 'poor'],
-        'medical': ['sick', 'illness', 'disease', 'pain', 'medicine', 'doctor', 'hospital'],
-        'legal': ['lawyer', 'court', 'legal', 'sue', 'lawsuit', 'arrest'],
-        'emotional': ['depressed', 'anxiety', 'stress', 'sad', 'hopeless', 'suicide', 'breakup', 'heartbreak'],
-        'relationship': ['divorce', 'breakup', 'cheat', 'abuse', 'violence', 'girlfriend', 'boyfriend']
+    prohibited_keywords = {
+        'sexual': ['sex', 'masturbation', 'porn', 'sexual', 'intercourse', 'lust', 'desire', 'kama'],
+        'nonveg': ['nonveg', 'non-veg', 'meat', 'chicken', 'fish', 'egg', 'eggs', 'mutton', 'beef', 'pork'],
+        'alcohol': ['alcohol', 'beer', 'wine', 'whisky', 'drink', 'drunk', 'intoxication', 'smoking', 'cigarette'],
+        'violence': ['violence', 'fight', 'attack', 'hurt', 'kill', 'war', 'weapon'],
+        'inappropriate': ['drugs', 'weed', 'marijuana', 'cannabis', 'addiction']
     }
     
     detected_topics = []
     question_lower = question.lower()
     
-    for category, keywords in sensitive_keywords.items():
+    for category, keywords in prohibited_keywords.items():
         if any(keyword in question_lower for keyword in keywords):
             detected_topics.append(category)
     
@@ -260,14 +260,74 @@ def detect_language(question):
         return 'gujarati'
     return 'english'
 
+def get_prohibited_response(language, topic):
+    """
+    Returns a standardized response for prohibited topics.
+    """
+    if language == 'gujarati':
+        return f"""**મુખ્ય વિચાર / Main Concept**
+• આ વિષય જૈન સિદ્ધાંતો સાથે સુસંગત નથી
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• અહિંસા - સર્વભૂત હિતેરતાઃ (સૌ પ્રાણીઓનું ભલું)
+• સંયમ - ઇન્દ્રિયો પર નિયંત્રણ
+• શુદ્ધતા - મન, વચન અને કાયાની પવિત્રતા
+
+**ધાર્મિક સલાહ / Religious Advice**
+• ભગવાન સાથે જોડાણ કરો નવકાર મંત્ર દ્વારા
+• આ ટેવ છોડવા ભગવાનનાં આશીર્વાદ માંગો
+• યાદ રાખો કે દરેક આત્મા પરિવર્તનની શક્તિ ધરાવે છે
+
+**વ્યવહારુ સૂચનો / Practical Suggestions**
+• પ્રલોભનોનો સામના કરવા 10 મિનિટ નવકાર મંત્ર જપો
+• "તત્વાર્થ સૂત્ર" જેવા ધાર્મિક ગ્રંથો વાંચો
+• જૈન સત્સંગ અથવા ઓનલાઈન સમુદાયમાં જોડાવો
+
+**પ્રેરણા / Inspiration**
+• અનેક મહાન આત્માઓએ ધાર્મિક સાધનાથી પરિવર્તન અનુભવ્યું છે
+• તમારી શુદ્ધ આત્મા ફરી ચમકવા માટે રાહ જોઈ રહી છે
+
+**સારાંશ / Summary**
+• આંતરિક શાંતિ અને શક્તિ માટે ધાર્મિક સાધનાઓ તરફ વળો"""
+    else:
+        return f"""**મુખ્ય વિચાર / Main Concept**
+• This topic is not aligned with Jain principles
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• Ahimsa - Non-violence towards all living beings
+• Self-discipline - Control over senses and desires
+• Purity - Maintaining physical and mental cleanliness
+
+**ધાર્મિક સલાહ / Religious Advice**
+• Connect with God through daily Navkar Mantra chanting
+• Seek divine blessings to overcome challenging habits
+• Remember every soul has the power to transform
+
+**વ્યવહારુ સૂચનો / Practical Suggestions**
+• Chant Navkar Mantra for 10 minutes when facing temptations
+• Read spiritual texts like "Tattvartha Sutra" for guidance
+• Join Jain satsangs or online spiritual communities
+
+**પ્રેરણા / Inspiration**
+• Many great souls have transformed through spiritual practice
+• Your pure soul is waiting to shine brightly again
+
+**સારાંશ / Summary**
+• Turn to spiritual practices to find strength and inner peace"""
+
 def get_ai_response(question, documents, bytez_model):
     """
     Gets relevant context and calls Bytez model for response.
     """
     try:
+        # Check for prohibited topics first
+        prohibited_topics = detect_sensitive_topic(question)
+        if prohibited_topics:
+            language = detect_language(question)
+            return get_prohibited_response(language, prohibited_topics[0]), [], []
+
         # Analyze question quality and sensitivity
         quality_score, suggestions = detect_question_quality(question)
-        sensitive_topics = detect_sensitive_topic(question)
         language = detect_language(question)
         
         # Search for relevant documents
@@ -276,40 +336,50 @@ def get_ai_response(question, documents, bytez_model):
         # Combine context from relevant documents
         context = "\n\n".join([doc['content'] for doc in relevant_docs])
         
-        # Fixed structure system prompt
+        # STRICTLY POINTWISE system prompt with realistic suggestions
         base_prompt = """You are JainQuest, a helpful AI assistant for Jain philosophy.
 
-IMPORTANT: You MUST structure every answer in this EXACT format:
+CRITICAL FORMAT RULES - YOU MUST FOLLOW:
+1. EVERY section must use ONLY bullet points (•)
+2. NO paragraphs allowed - only short, clear bullet points
+3. Keep each bullet point to 1-2 lines maximum
+4. Be practical and realistic with advice
+5. Include specific, actionable suggestions
+6. Use simple language everyone can understand
+
+REAL-WORLD JAIN TEACHER PRACTICES TO INCORPORATE:
+• Satish Kumar's "Walk gently with eyes on ground" to practice mindfulness
+• Acharya Shree Yogeesh's breathing techniques for stress relief
+• Siddhayatan Tirth's meditation methods for emotional healing
+• Listen to Jain bhajans like "Nemras" on Spotify/YouTube
+• Practice 5-minute Navkar Mantra meditation daily
+• Join online Jain satsangs for community support
+
+REQUIRED SECTIONS (in this exact order):
 
 **મુખ્ય વિચાર / Main Concept**
-[Clear 2-3 line explanation in simple words]
+• [One clear bullet point explaining the core idea]
 
 **મુખ્ય મુદ્દાઓ / Key Points**
-• [Point 1 - simple and clear]
-• [Point 2 - simple and clear] 
-• [Point 3 - simple and clear]
-• [Point 4 - simple and clear]
+• [Point 1 - short and clear]
+• [Point 2 - short and clear]
+• [Point 3 - short and clear]
 
 **જૈન સિદ્ધાંતો / Jain Principles**
 • [Relevant Jain principle 1]
 • [Relevant Jain principle 2]
 
-**દૈનિક જીવનમાં ઉપયોગ / Daily Life Application**
-• [Practical tip 1]
-• [Practical tip 2]
+**વ્યવહારુ સલાહ / Practical Advice**
+• [Include specific Jain teacher techniques when relevant]
+• [Suggest Jain music like "Nemras" for emotional healing]
+• [Recommend meditation apps or online resources]
+• [Something easy to do today]
 
 **ભાવનાત્મક સહાય / Emotional Support**
-[Compassionate, encouraging message]
+• [One compassionate, encouraging bullet point]
 
 **સારાંશ / Summary**
-[1-2 line takeaway]
-
-Rules:
-- Use bullet points (•) only, no numbering
-- Keep each point simple and easy to understand
-- Be compassionate and supportive
-- Use both Gujarati and English headings
-- Make it helpful for all age groups"""
+• [One final takeaway bullet point]"""
 
         # Add language instruction
         if language == 'gujarati':
@@ -322,7 +392,7 @@ Rules:
         if context.strip():
             context_part = f"\n\nRELEVANT CONTEXT:\n{context}\n\nBase your answer on this context when possible."
 
-        system_prompt = base_prompt + language_instruction + context_part + f"\n\nQUESTION: {question}\n\nProvide your structured answer:"
+        system_prompt = base_prompt + language_instruction + context_part + f"\n\nQUESTION: {question}\n\nProvide your STRICTLY POINTWISE answer:"
 
         # Prepare messages for the model
         messages = [
@@ -410,6 +480,14 @@ st.markdown("""
         margin: 1rem 0;
     }
     
+    .warning-box {
+        background: #FFEBEE;
+        padding: 1rem;
+        border-radius: 10px;
+        border-left: 5px solid #F44336;
+        margin: 1rem 0;
+    }
+    
     /* High contrast for elders */
     .main {
         color: #000000;
@@ -442,6 +520,19 @@ with col3:
     status = "🌟 Unlimited" if st.session_state.admin_mode else "✅ Active"
     st.metric("Status", status)
 
+# --- Content Guidelines ---
+st.markdown("""
+<div class="warning-box">
+    <h4 style="margin: 0; color: #D32F2F;">📜 Content Guidelines</h4>
+    <p style="margin: 0.5rem 0 0 0; font-size: 1.1rem;">
+    • I provide spiritual guidance based on Jain principles<br>
+    • I cannot answer questions about prohibited topics<br>
+    • Always consult experts for medical/legal advice<br>
+    • Focus on spiritual growth and inner peace
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
 # --- Quick Action Buttons (Large & Clear) ---
 st.markdown("### Quick Questions")
 col1, col2, col3, col4 = st.columns(4)
@@ -470,7 +561,8 @@ st.markdown("""
     • Ask any question about Jain philosophy<br>
     • Seek emotional or spiritual guidance<br>
     • Type in English or Gujarati<br>
-    • Get clear, pointwise answers
+    • Get clear, pointwise answers<br>
+    • Based on authentic Jain teachings
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -593,6 +685,6 @@ st.markdown("""
 <div style="text-align: center; color: #666; font-size: 1rem;">
     <p><strong>Powered by Digital Jain Pathshala</strong></p>
     <p>Created with ❤️ by Saumya Sanghvi</p>
-    <p><em>For spiritual guidance and philosophical learning</em></p>
+    <p><em>For spiritual guidance based on authentic Jain teachings</em></p>
 </div>
 """, unsafe_allow_html=True)
