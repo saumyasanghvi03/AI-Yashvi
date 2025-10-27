@@ -116,13 +116,14 @@ def create_qa_chain(vector_store):
         # We use a custom prompt to combine the Jain Bot persona with RAG instructions
         prompt_template = """
         You are Jain Yuva Bot (JYB), an AI assistant helping users understand
-        Jainism based on a specific knowledge base.
+        Jainism based on a specific knowledge base and your general training.
         
-        Your mission is to provide accurate, respectful, and clear answers based *only*
-        on the provided context from the GitHub repository.
+        Your mission is to provide an accurate, respectful, and clear answer.
         
-        If the answer is not found in the context, clearly state that the 
-        information is not available in the provided repository.
+        Follow these steps:
+        1. First, look for the answer *only* within the provided CONTEXT.
+        2. If the answer is clearly found in the CONTEXT, base your entire answer on that CONTEXT.
+        3. If the answer is *not* found in the CONTEXT, then answer the question using your general knowledge of Jainism.
         
         CONTEXT:
         {context}
@@ -228,4 +229,5 @@ if prompt := st.chat_input("Ask your question..."):
 
             except Exception as e:
                 st.error(f"An error occurred: {e}")
+
 
