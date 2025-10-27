@@ -134,7 +134,7 @@ def create_qa_chain(vector_store):
     try:
         # The "brain" for the RAG chain
         llm = ChatGoogleGenerativeAI(
-            model="gemini-pro",
+            model="gemini-1.5-pro-latest", # <-- ****** FIX ****** Was "gemini-pro"
             google_api_key=GEMINI_API_KEY,
             temperature=0.3 # Make responses more factual
         )
