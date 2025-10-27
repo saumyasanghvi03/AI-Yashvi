@@ -9,8 +9,9 @@ import requests
 import json
 import numpy as np
 from sentence_transformers import SentenceTransformer
-import faiss
 import glob
+from sklearn.metrics.pairwise import cosine_similarity
+import re
 
 # --- Configuration ---
 st.set_page_config(page_title="Jain Yuva Bot (RAG)", page_icon="🙏")
@@ -39,8 +40,8 @@ def initialize_user_session():
     if "last_reset_date" not in st.session_state:
         st.session_state.last_reset_date = datetime.now(IST).date()
     
-    if "vector_store" not in st.session_state:
-        st.session_state.vector_store = None
+    if "knowledge_base" not in st.session_state:
+        st.session_state.knowledge_base = None
     
     if "embedding_model" not in st.session_state:
         st.session_state.embedding_model = None
@@ -58,22 +59,22 @@ def get_remaining_questions():
     """Returns the number of questions remaining."""
     return 5 - st.session_state.question_count
 
-# --- Custom RAG Functions (No LangChain) ---
+# --- Custom RAG Functions (No FAISS) ---
 
 @st.cache_resource
 def load_embedding_model():
     """Load the sentence transformer model for embeddings."""
     try:
-        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        model = SentenceTransformer('all-MiniLM-L6-v2')
         return model
     except Exception as e:
         st.error(f"Error loading embedding model: {e}")
         return None
 
-def load_repo_and_build_store():
+def load_repo_content():
     """
-    Clones the GitHub repo, loads text files, splits them, and builds a FAISS index.
-    Returns a tuple (documents, index, document_metadata)
+    Clones the GitHub repo and loads text files.
+    Returns a list of documents with metadata.
     """
     try:
         progress_bar = st.progress(0, text="Initializing...")
@@ -86,83 +87,86 @@ def load_repo_and_build_store():
             
             # Find all text files
             documents = []
-            document_metadata = []
             
             # Define file patterns to search for
-            patterns = ['**/*.txt', '**/*.md', '**/*.py', '**/*.rst']
+            patterns = ['**/*.txt', '**/*.md', '**/*.py', '**/*.rst', '**/*.json']
             
             for pattern in patterns:
                 for file_path in glob.glob(os.path.join(temp_dir, pattern), recursive=True):
                     try:
+                        # Skip hidden files and directories
+                        if os.path.basename(file_path).startswith('.'):
+                            continue
+                            
                         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                             content = f.read()
                             if content.strip():  # Only add non-empty files
                                 # Get relative path for display
                                 rel_path = os.path.relpath(file_path, temp_dir)
-                                documents.append(content)
-                                document_metadata.append({
+                                documents.append({
                                     'source': rel_path,
-                                    'content': content
+                                    'content': content,
+                                    'chunks': []
                                 })
                     except Exception as e:
-                        st.warning(f"Could not read {file_path}: {e}")
-            
+                        continue  # Skip files that can't be read
+
             if not documents:
                 st.error("No compatible documents found in this repository.")
-                return None, None, None
+                return None
 
             progress_bar.progress(40, text=f"Loaded {len(documents)} documents. Splitting...")
             
-            # Split documents into chunks (simple splitting)
-            text_chunks = []
+            # Split documents into chunks
+            all_chunks = []
             chunk_metadata = []
             
-            for doc_content, meta in zip(documents, document_metadata):
+            for doc in documents:
+                content = doc['content']
                 # Simple chunking by character count
                 chunk_size = 1000
                 chunk_overlap = 200
                 
-                for i in range(0, len(doc_content), chunk_size - chunk_overlap):
-                    chunk = doc_content[i:i + chunk_size]
+                chunks = []
+                for i in range(0, len(content), chunk_size - chunk_overlap):
+                    chunk = content[i:i + chunk_size]
                     if len(chunk.strip()) > 50:  # Only add substantial chunks
-                        text_chunks.append(chunk)
+                        chunks.append(chunk)
+                        all_chunks.append(chunk)
                         chunk_metadata.append({
-                            'source': meta['source'],
+                            'source': doc['source'],
                             'content': chunk,
-                            'chunk_id': len(text_chunks)
+                            'chunk_id': len(all_chunks)
                         })
-            
-            progress_bar.progress(60, text=f"Created {len(text_chunks)} text chunks. Creating embeddings...")
+                
+                doc['chunks'] = chunks
+
+            progress_bar.progress(60, text=f"Created {len(all_chunks)} text chunks. Creating embeddings...")
             
             # Load embedding model
             embedding_model = load_embedding_model()
             if not embedding_model:
-                return None, None, None
+                return None
             
-            # Create embeddings
-            embeddings = embedding_model.encode(text_chunks)
-            
-            progress_bar.progress(80, text="Building vector store...")
-            
-            # Create FAISS index
-            dimension = embeddings.shape[1]
-            index = faiss.IndexFlatIP(dimension)  # Using Inner Product (cosine similarity)
-            
-            # Normalize embeddings for cosine similarity
-            faiss.normalize_L2(embeddings)
-            index.add(embeddings)
+            # Create embeddings for all chunks
+            embeddings = embedding_model.encode(all_chunks)
             
             progress_bar.progress(100, text="Knowledge base loaded successfully!")
             progress_bar.empty()
             
-            return index, text_chunks, chunk_metadata
+            return {
+                'documents': documents,
+                'all_chunks': all_chunks,
+                'chunk_metadata': chunk_metadata,
+                'embeddings': embeddings
+            }
 
     except Exception as e:
         st.error(f"Error loading repository: {e}")
-        return None, None, None
+        return None
 
-def search_similar_documents(query, index, text_chunks, chunk_metadata, k=4):
-    """Search for similar documents using the FAISS index."""
+def search_similar_documents(query, knowledge_base, k=4):
+    """Search for similar documents using cosine similarity."""
     try:
         embedding_model = st.session_state.embedding_model
         if not embedding_model:
@@ -170,20 +174,21 @@ def search_similar_documents(query, index, text_chunks, chunk_metadata, k=4):
         
         # Encode query
         query_embedding = embedding_model.encode([query])
+        embeddings = knowledge_base['embeddings']
         
-        # Normalize for cosine similarity
-        faiss.normalize_L2(query_embedding)
+        # Calculate cosine similarity
+        similarities = cosine_similarity(query_embedding, embeddings)[0]
         
-        # Search
-        scores, indices = index.search(query_embedding, k)
+        # Get top k results
+        top_indices = np.argsort(similarities)[-k:][::-1]
         
         results = []
-        for score, idx in zip(scores[0], indices[0]):
-            if idx < len(text_chunks):
+        for idx in top_indices:
+            if similarities[idx] > 0.1:  # Minimum similarity threshold
                 results.append({
-                    'content': text_chunks[idx],
-                    'metadata': chunk_metadata[idx],
-                    'score': float(score)
+                    'content': knowledge_base['all_chunks'][idx],
+                    'metadata': knowledge_base['chunk_metadata'][idx],
+                    'score': float(similarities[idx])
                 })
         
         return results
@@ -226,13 +231,13 @@ def call_bytez_api(messages):
     except Exception as e:
         return f"Error calling Bytez API: {str(e)}", None
 
-def get_rag_response(question, index, text_chunks, chunk_metadata):
+def get_rag_response(question, knowledge_base):
     """
     Gets relevant context and calls Bytez API for response.
     """
     try:
         # Search for similar documents
-        similar_docs = search_similar_documents(question, index, text_chunks, chunk_metadata, k=4)
+        similar_docs = search_similar_documents(question, knowledge_base, k=4)
         
         # Combine context from relevant documents
         context = "\n\n".join([doc['content'] for doc in similar_docs])
@@ -267,9 +272,11 @@ CONTEXT:
         error, output = call_bytez_api(messages)
         
         if error:
-            return f"Error: {error}", []
-        else:
+            return f"Error: {error}", similar_docs
+        elif output:
             return output, similar_docs
+        else:
+            return "No response received from the AI model.", similar_docs
         
     except Exception as e:
         return f"Error in RAG pipeline: {str(e)}", []
@@ -290,7 +297,7 @@ Ask any questions about its knowledge files!
 """)
 
 # --- Load Knowledge Base Automatically ---
-if st.session_state.vector_store is None:
+if st.session_state.knowledge_base is None:
     with st.spinner("Loading knowledge base... This may take a few minutes."):
         # Load embedding model first
         st.session_state.embedding_model = load_embedding_model()
@@ -298,15 +305,11 @@ if st.session_state.vector_store is None:
             st.error("Failed to load embedding model. The app cannot start.")
             st.stop()
         
-        # Load repository and build vector store
-        index, text_chunks, chunk_metadata = load_repo_and_build_store()
-        if index is not None:
-            st.session_state.vector_store = {
-                'index': index,
-                'text_chunks': text_chunks,
-                'chunk_metadata': chunk_metadata
-            }
-            st.success(f"✅ Knowledge base loaded successfully! ({len(text_chunks)} chunks)")
+        # Load repository content
+        knowledge_base = load_repo_content()
+        if knowledge_base is not None:
+            st.session_state.knowledge_base = knowledge_base
+            st.success(f"✅ Knowledge base loaded successfully! ({len(knowledge_base['all_chunks'])} chunks from repository)")
         else:
             st.error("Failed to load the knowledge base. The app cannot start.")
             st.stop()
@@ -341,13 +344,7 @@ if prompt := st.chat_input("Ask your question..."):
         with st.spinner("JYB is thinking..."):
             try:
                 # Get RAG response using Bytez
-                vector_data = st.session_state.vector_store
-                bot_response, source_docs = get_rag_response(
-                    prompt, 
-                    vector_data['index'], 
-                    vector_data['text_chunks'], 
-                    vector_data['chunk_metadata']
-                )
+                bot_response, source_docs = get_rag_response(prompt, st.session_state.knowledge_base)
                 
                 # Add bot response to session state
                 st.session_state.messages.append({"role": "assistant", "content": bot_response})
@@ -361,8 +358,9 @@ if prompt := st.chat_input("Ask your question..."):
                         if source_docs:
                             with st.expander("📁 Sources from Repository"):
                                 for doc in source_docs:
-                                    st.info(f"**File:** `{doc['metadata']['source']}` (Relevance: {doc['score']:.3f})")
-                                    st.code(doc['content'][:500] + "..." if len(doc['content']) > 500 else doc['content'])
+                                    st.info(f"**File:** `{doc['metadata']['source']}` (Similarity: {doc['score']:.3f})")
+                                    content_preview = doc['content'][:500] + "..." if len(doc['content']) > 500 else doc['content']
+                                    st.code(content_preview)
                 
                 # Increment the question count
                 st.session_state.question_count += 1
@@ -372,7 +370,11 @@ if prompt := st.chat_input("Ask your question..."):
             except Exception as e:
                 error_msg = f"An error occurred: {str(e)}"
                 st.error(error_msg)
-                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                st.session_state.messages.append({"role": "assistant", "content": "I encountered an error while processing your question. Please try again."})
                 with chat_container:
                     with st.chat_message("assistant"):
-                        st.markdown(error_msg)
+                        st.markdown("I encountered an error while processing your question. Please try again.")
+
+# --- Footer ---
+st.markdown("---")
+st.markdown("Built with ❤️ for the Jain community | Powered by [Bytez](https://bytez.com/)")
