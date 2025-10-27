@@ -1,8 +1,9 @@
 streamlit
 google-generativeai
 pytz
+GitPython
 langchain
 langchain-google-genai
-langchain_community
+langchain-community
 faiss-cpu
-GitPython
+sentence-transformers
