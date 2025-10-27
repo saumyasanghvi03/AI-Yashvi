@@ -783,8 +783,45 @@ def get_fallback_response(question):
                 continue
             return data['answer']
     # --- END OF BUG FIX ---
+
+    # --- REPAIR: Check WHY we are falling back ---
+    # If no AI models were loaded at all, show a specific error.
+    if not st.session_state.ai_models:
+        specific_error_message_eng = """**મુખ્ય વિચાર / Main Concept**
+• The AI models are not available.
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• This app requires installing Python packages to function.
+• The `bytez` and `transformers` packages could not be found.
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• If you are running this locally, please install the dependencies:
+• `pip install bytez transformers torch accelerate`
+
+**સારાંશ / Summary**
+• AI features are disabled. Using pre-written answers only."""
+        
+        specific_error_message_guj = """**મુખ્ય વિચાર / Main Concept**
+• AI મોડલ ઉપલબ્ધ નથી.
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• આ એપ્લિકેશનને કાર્ય કરવા માટે પાઇથોન પેકેજો ઇન્સ્ટોલ કરવાની જરૂર છે.
+• `bytez` અને `transformers` પેકેજો મળી શક્યા નથી.
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• જો તમે આને સ્થાનિક રીતે ચલાવી રહ્યા છો, તો કૃપા કરીને ડિપેન્ડન્સી ઇન્સ્ટોલ કરો:
+• `pip install bytez transformers torch accelerate`
+
+**સારાંશ / Summary**
+• AI સુવિધાઓ અક્ષમ છે. ફક્ત પૂર્વ-લેખિત જવાબોનો ઉપયોગ કરી રહ્યા છીએ."""
+        
+        if detect_language(question) == 'gujarati':
+            return specific_error_message_guj
+        else:
+            return specific_error_message_eng
+    # --- END REPAIR ---
     
-    # Generic fallback responses
+    # Generic fallback responses (if models *are* loaded but just failed)
     fallback_responses = {
         'english': """**મુખ્ય વિચાર / Main Concept**
 • I'm currently experiencing technical difficulties with my AI models
@@ -1537,3 +1574,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
