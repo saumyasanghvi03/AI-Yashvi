@@ -1,6 +1,8 @@
 streamlit
-requests
-gtts
-SpeechRecognition
-pandas
-pyaudio
+google-generativeai
+pytz
+langchain
+langchain-google-genai
+langchain_community
+faiss-cpu
+GitPython
