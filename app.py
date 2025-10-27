@@ -16,7 +16,7 @@ except ImportError:
     st.stop()
 
 # --- Configuration ---
-st.set_page_config(page_title="Jain Yuva Bot", page_icon="🙏")
+st.set_page_config(page_title="JainQuest", page_icon="🙏")
 
 # --- Hard-coded Repo URL ---
 REPO_URL = "https://github.com/saumyasanghvi03/AI-Yashvi/"
@@ -26,13 +26,13 @@ BYTEZ_API_KEY = "90d252f09c55cacf3dcc914b5bb4ac01"
 
 # --- Rate Limiting Logic ---
 IST = pytz.timezone('Asia/Kolkata')
-DAILY_QUESTION_LIMIT = 10  # Increased from 5 to 10
+DAILY_QUESTION_LIMIT = 10
 
 def initialize_user_session():
     """Initializes session state variables if they don't exist."""
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Welcome to Jain Yuva Bot (JYB)! 🙏\n\nI specialize in Jain philosophy and can help you explore core concepts, ethical frameworks, cosmology, spiritual practices, and scriptural wisdom."}
+            {"role": "assistant", "content": "Welcome to JainQuest! 🙏\n\nEmbark on a journey through Jain philosophy. I can help you explore core concepts, ethical frameworks, cosmology, spiritual practices, and scriptural wisdom."}
         ]
     
     if "question_count" not in st.session_state:
@@ -206,6 +206,10 @@ def refine_answer_format(answer):
     """
     Refines the answer format to ensure proper structure and markdown formatting.
     """
+    # Fix for the error: ensure answer is a string before processing
+    if not isinstance(answer, str):
+        return str(answer)
+    
     # Clean up common formatting issues
     refined = answer.strip()
     
@@ -264,7 +268,7 @@ def get_ai_response(question, documents, bytez_model):
         context = "\n\n".join([doc['content'] for doc in relevant_docs])
         
         # Enhanced system prompt for refined answers
-        base_prompt = """You are Jain Yuva Bot (JYB), an AI assistant with deep expertise in Jainism.
+        base_prompt = """You are JainQuest, an AI assistant with deep expertise in Jainism.
 
 YOUR RESPONSE FORMAT REQUIREMENTS:
 - Use proper Markdown formatting with headers (##, ###)
@@ -355,9 +359,11 @@ initialize_user_session()
 check_and_reset_limit()
 
 # --- Header ---
-st.title("Welcome to Jain Yuva Bot (JYB)! 🙏")
+st.title("Welcome to JainQuest! 🙏")
 st.markdown("""
-I specialize in Jain philosophy and can help you explore:
+**Embark on a journey through Jain philosophy**
+
+I can help you explore:
 
 **📚 Core Knowledge Areas:**
 - **Jain Philosophy**: Six Substances, Nine Truths, Anekantavada
@@ -419,7 +425,7 @@ if prompt := st.chat_input("Ask your question about Jainism..."):
                 st.markdown(prompt)
 
         # Show a spinner
-        with st.spinner("🤔 JYB is thinking..."):
+        with st.spinner("🤔 JainQuest is thinking..."):
             try:
                 # Get AI response using Bytez
                 bot_response, source_docs, suggestions = get_ai_response(
