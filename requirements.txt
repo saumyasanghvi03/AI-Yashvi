@@ -1,5 +1,8 @@
 streamlit>=1.28.0
 pytz>=2023.3
-gitpython>=3.1.37
-requests>=2.31.0
+gitpython>=3.1.0
 bytez>=0.1.0
+transformers>=4.35.0
+torch>=2.0.0
+accelerate>=0.20.0
+tokenizers>=0.15.0
