@@ -761,10 +761,23 @@ def get_fallback_response(question):
     """Ultimate fallback when all AI models fail."""
     question_lower = question.lower()
     
-    # Match with quick questions database
+    # --- BUG FIX ---
+    # The original logic was matching any word from the question_data,
+    # causing "What is Jainism?" to match "What is the Navkar Mantra?".
+    # The new logic checks if the *primary topic word* from the key 
+    # (e.g., "jainism", "navkar", "ahimsa") is in the user's question.
+    
+    # Try matching based on the primary topic word in the dictionary key
     for key, data in QUICK_QUESTIONS_DATABASE.items():
-        if any(word in question_lower for word in data['question'].lower().split()[:3]):
+        # Get the main topic from the key (e.g., "jainism" from "jainism_basics")
+        topic_word = key.split('_')[0]
+        
+        if topic_word in question_lower:
+            # Special case: 'three' is too general, check for 'three jewels'
+            if topic_word == 'three' and 'jewels' not in question_lower:
+                continue
             return data['answer']
+    # --- END OF BUG FIX ---
     
     # Generic fallback responses
     fallback_responses = {
