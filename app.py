@@ -7,6 +7,8 @@ import shutil
 from git import Repo
 import glob
 import re
+import requests
+from bs4 import BeautifulSoup
 
 # --- Bytez SDK Import ---
 try:
@@ -19,8 +21,8 @@ except ImportError:
 st.set_page_config(
     page_title="JainQuest - Spiritual Guide", 
     page_icon="🙏", 
-    layout="centered",
-    initial_sidebar_state="collapsed"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # --- Hard-coded Repo URL ---
@@ -33,6 +35,20 @@ BYTEZ_API_KEY = "90d252f09c55cacf3dcc914b5bb4ac01"
 IST = pytz.timezone('Asia/Kolkata')
 DAILY_QUESTION_LIMIT = 10
 ADMIN_PASSWORD = "100370"
+
+# --- Additional Jain Knowledge Sources ---
+JAIN_KNOWLEDGE_SOURCES = {
+    "Jain eLibrary": "https://www.jainelibrary.org",
+    "JainQQ": "https://www.jainqq.org",
+    "JainWorld": "https://www.jainworld.com",
+    "HereNow4U": "https://www.herenow4u.net",
+    "Jainpedia": "https://www.jainpedia.org",
+    "Jain Philosophy": "https://www.jainphilosophy.com",
+    "Jain Study": "https://www.jainstudy.org",
+    "Jain Heritage": "https://www.jainheritage.org",
+    "Jain Scriptures": "https://www.jainscriptures.com",
+    "Jain Meditation": "https://www.jainmeditation.org"
+}
 
 def initialize_user_session():
     """Initializes session state variables if they don't exist."""
@@ -55,6 +71,12 @@ def initialize_user_session():
     
     if "admin_mode" not in st.session_state:
         st.session_state.admin_mode = False
+    
+    if "current_page" not in st.session_state:
+        st.session_state.current_page = "Chat"
+    
+    if "user_name" not in st.session_state:
+        st.session_state.user_name = ""
 
 def check_and_reset_limit():
     """Checks if the day has changed (midnight IST) and resets the limit."""
@@ -338,6 +360,30 @@ def format_response_to_bullet_points(response):
     
     return '\n'.join(bullet_points)
 
+def get_jain_knowledge_context():
+    """
+    Returns context about additional Jain knowledge sources for the AI model.
+    """
+    sources_context = "ADDITIONAL JAIN KNOWLEDGE SOURCES FOR REFERENCE:\n\n"
+    for source_name, source_url in JAIN_KNOWLEDGE_SOURCES.items():
+        sources_context += f"• {source_name}: {source_url}\n"
+    
+    sources_context += """
+    
+IMPORTANT JAIN CONCEPTS TO REFERENCE WHEN RELEVANT:
+
+• Ayambil: A Jain spiritual practice combining intermittent fasting with controlled diet
+• Navpad Oli: Nine-day festival dedicated to worshipping the nine supreme posts
+• Ras parityag: Control of taste buds and renouncing desire for flavor
+• Tattvartha Sutra: Fundamental Jain text covering all aspects of Jain philosophy
+• Navkar Mantra: The most important mantra in Jainism
+• Ahimsa: Non-violence towards all living beings
+• Anekantavada: Doctrine of multiple viewpoints
+• Aparigraha: Non-attachment to possessions
+• Three Jewels: Right faith, right knowledge, right conduct
+"""
+    return sources_context
+
 def get_ai_response(question, documents, bytez_model):
     """
     Gets relevant context and calls Bytez model for response.
@@ -417,9 +463,12 @@ REMEMBER: ONLY BULLET POINTS, NO PARAGRAPHS!"""
         # Add context if available
         context_part = ""
         if context.strip():
-            context_part = f"\n\nRELEVANT CONTEXT:\n{context}\n\nBase your answer on this context when possible."
+            context_part = f"\n\nRELEVANT CONTEXT FROM KNOWLEDGE BASE:\n{context}\n\n"
 
-        system_prompt = base_prompt + language_instruction + context_part + f"\n\nQUESTION: {question}\n\nProvide your STRICTLY POINTWISE answer:"
+        # Add Jain knowledge sources context
+        jain_sources_context = get_jain_knowledge_context()
+
+        system_prompt = base_prompt + language_instruction + context_part + jain_sources_context + f"\n\nQUESTION: {question}\n\nProvide your STRICTLY POINTWISE answer:"
 
         # Prepare messages for the model
         messages = [
@@ -448,283 +497,433 @@ REMEMBER: ONLY BULLET POINTS, NO PARAGRAPHS!"""
     except Exception as e:
         return f"Error processing your question: {str(e)}", [], []
 
-# --- Universal UI Design ---
+# --- Enhanced UI Components ---
+def render_sidebar():
+    """Renders the enhanced sidebar with navigation and user info."""
+    with st.sidebar:
+        st.markdown("""
+        <div style="text-align: center; padding: 1rem;">
+            <h1 style="font-size: 2.5rem; margin: 0;">🙏</h1>
+            <h2 style="color: #2E7D32; margin: 0.5rem 0;">JainQuest</h2>
+            <p style="color: #666; font-size: 0.9rem;">Spiritual Guide for Everyday Life</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # User Profile Section
+        st.markdown("---")
+        st.subheader("👤 Your Profile")
+        
+        if not st.session_state.user_name:
+            user_name = st.text_input("Enter your name:", placeholder="Your name...")
+            if user_name:
+                st.session_state.user_name = user_name
+                st.rerun()
+        else:
+            st.success(f"Welcome, {st.session_state.user_name}!")
+            if st.button("Change Name"):
+                st.session_state.user_name = ""
+                st.rerun()
+        
+        # Navigation
+        st.markdown("---")
+        st.subheader("🧭 Navigation")
+        
+        nav_options = ["💬 Chat", "📚 Learn", "🛠️ Settings"]
+        for option in nav_options:
+            if st.button(option, use_container_width=True, key=f"nav_{option}"):
+                st.session_state.current_page = option.replace("💬 ", "").replace("📚 ", "").replace("🛠️ ", "")
+                st.rerun()
+        
+        # Quick Stats
+        st.markdown("---")
+        st.subheader("📊 Today's Stats")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Questions", st.session_state.question_count)
+        with col2:
+            remaining = get_remaining_questions()
+            st.metric("Remaining", remaining)
+        
+        # Admin Section
+        st.markdown("---")
+        with st.expander("🔧 Admin Settings"):
+            if not st.session_state.admin_mode:
+                admin_pass = st.text_input("Admin Password", type="password")
+                if st.button("Enable Admin Mode"):
+                    if admin_pass == ADMIN_PASSWORD:
+                        st.session_state.admin_mode = True
+                        st.success("Admin mode activated!")
+                        st.rerun()
+                    else:
+                        st.error("Incorrect password")
+            else:
+                st.success("🛡️ Admin Mode: ACTIVE")
+                if st.button("Disable Admin Mode"):
+                    st.session_state.admin_mode = False
+                    st.rerun()
+        
+        # Resources
+        st.markdown("---")
+        st.subheader("📖 Resources")
+        st.info("""
+        **Authentic Jain Sources:**
+        • Jain eLibrary
+        • JainQQ
+        • JainWorld
+        • HereNow4U
+        """)
 
-# Initialize
-initialize_user_session()
-check_and_reset_limit()
+def render_chat_page():
+    """Renders the main chat interface."""
+    st.markdown("""
+    <style>
+    .main-chat-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Header with quick actions
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        st.markdown("### 💭 Ask Your Spiritual Questions")
+    with col2:
+        if st.button("🔄 Clear Chat", use_container_width=True):
+            st.session_state.messages = [
+                {"role": "assistant", "content": "Chat cleared! How can I help you with Jain philosophy today? 🌟"}
+            ]
+            st.rerun()
+    with col3:
+        if st.button("📋 Quick Topics", use_container_width=True):
+            st.session_state.show_quick_topics = not getattr(st.session_state, 'show_quick_topics', False)
+            st.rerun()
+    
+    # Quick Topics
+    if getattr(st.session_state, 'show_quick_topics', True):
+        st.markdown("---")
+        st.markdown("#### 🚀 Quick Learning Topics")
+        
+        topics_col1, topics_col2, topics_col3, topics_col4 = st.columns(4)
+        
+        quick_topics = {
+            "🔰 Basic Principles": "What are the basic principles of Jainism?",
+            "💎 Three Jewels": "Explain the Three Jewels of Jainism",
+            "🕊️ Ahimsa": "What is Ahimsa and how to practice it daily?",
+            "🧘 Meditation": "Simple meditation techniques in Jainism",
+            "📿 Navkar Mantra": "What is the significance of Navkar Mantra?",
+            "🌱 Vegetarianism": "Why is vegetarianism important in Jainism?",
+            "🎯 Ayambil": "What is Ayambil and its spiritual benefits?",
+            "📚 Tattvartha Sutra": "Explain the key teachings of Tattvartha Sutra"
+        }
+        
+        with topics_col1:
+            if st.button("Basic Principles", use_container_width=True, key="basic_principles"):
+                st.session_state.messages.append({"role": "user", "content": quick_topics["🔰 Basic Principles"]})
+        with topics_col2:
+            if st.button("Three Jewels", use_container_width=True, key="three_jewels"):
+                st.session_state.messages.append({"role": "user", "content": quick_topics["💎 Three Jewels"]})
+        with topics_col3:
+            if st.button("Ahimsa", use_container_width=True, key="ahimsa"):
+                st.session_state.messages.append({"role": "user", "content": quick_topics["🕊️ Ahimsa"]})
+        with topics_col4:
+            if st.button("Meditation", use_container_width=True, key="meditation"):
+                st.session_state.messages.append({"role": "user", "content": quick_topics["🧘 Meditation"]})
+    
+    # Chat Container
+    st.markdown("---")
+    
+    # Chat messages display
+    chat_container = st.container(height=500, border=True)
+    
+    with chat_container:
+        for message in st.session_state.messages:
+            if message["role"] == "user":
+                st.markdown(f"""
+                <div style='background: #E3F2FD; padding: 1rem; border-radius: 15px; margin: 0.5rem 0; border-left: 5px solid #1976D2;'>
+                    <div style='font-weight: bold; color: #1565C0;'>👤 You</div>
+                    <div style='margin-top: 0.5rem; font-size: 1.1rem;'>{message["content"]}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div style='background: #F3E5F5; padding: 1rem; border-radius: 15px; margin: 0.5rem 0; border-left: 5px solid #7B1FA2;'>
+                    <div style='font-weight: bold; color: #6A1B9A;'>🙏 JainQuest</div>
+                    <div style='margin-top: 0.5rem; font-size: 1.1rem; line-height: 1.6;'>{message["content"]}</div>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    # Chat input
+    st.markdown("---")
+    question = st.text_area(
+        "**Type your spiritual question here...**", 
+        height=120,
+        placeholder="Example: What is the meaning of life according to Jainism? OR જૈન ધર્મ મુજબ જીવનનો અર્થ શું છે? OR How can I find inner peace?",
+        key="chat_input"
+    )
+    
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        st.info("💡 You can ask in English or Gujarati • 📚 Responses based on authentic Jain sources")
+    with col2:
+        send_clicked = st.button("🚀 Send Question", use_container_width=True, type="primary")
+    
+    if send_clicked and question.strip():
+        process_user_question(question)
 
-# Custom CSS for universal accessibility
-st.markdown("""
-<style>
-    /* Large, readable fonts for all ages */
+def render_learn_page():
+    """Renders the learning resources page."""
+    st.markdown("## 📚 Jain Learning Resources")
+    
+    st.markdown("""
+    <div style='background: #E8F5E8; padding: 2rem; border-radius: 15px; margin: 1rem 0;'>
+        <h3 style='color: #2E7D32;'>🌿 Deepen Your Spiritual Journey</h3>
+        <p>Explore authentic Jain resources to enhance your understanding and practice.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Jain Knowledge Sources
+    st.markdown("### 🏛️ Authentic Jain Sources")
+    
+    sources_col1, sources_col2 = st.columns(2)
+    
+    with sources_col1:
+        for i, (source_name, source_url) in enumerate(list(JAIN_KNOWLEDGE_SOURCES.items())[:5]):
+            with st.expander(f"📖 {source_name}", expanded=i==0):
+                st.markdown(f"""
+                **Website:** [{source_url}]({source_url})
+                
+                **Description:** Comprehensive Jain {source_name.split()[-1].lower()} resources including scriptures, articles, and teachings.
+                """)
+    
+    with sources_col2:
+        for i, (source_name, source_url) in enumerate(list(JAIN_KNOWLEDGE_SOURCES.items())[5:]):
+            with st.expander(f"📖 {source_name}", expanded=i==0):
+                st.markdown(f"""
+                **Website:** [{source_url}]({source_url})
+                
+                **Description:** Authentic Jain {source_name.split()[-1].lower()} materials and spiritual guidance.
+                """)
+    
+    # Key Concepts
+    st.markdown("### 🔑 Key Jain Concepts")
+    
+    concepts = {
+        "Ahimsa (Non-violence)": "The fundamental principle of causing no harm to any living being",
+        "Anekantavada (Multiple Viewpoints)": "The doctrine of understanding truth from multiple perspectives",
+        "Aparigraha (Non-attachment)": "Detachment from material possessions and desires",
+        "Three Jewels": "Right faith, right knowledge, and right conduct - the path to liberation",
+        "Karma Theory": "Understanding how actions affect the soul's journey",
+        "Navkar Mantra": "The most important mantra honoring the five supreme beings"
+    }
+    
+    for concept, description in concepts.items():
+        with st.expander(f"🌟 {concept}"):
+            st.markdown(f"**{description}**")
+            st.info("Ask me about this concept in the chat for detailed explanation!")
+
+def render_settings_page():
+    """Renders the settings page."""
+    st.markdown("## ⚙️ Settings & Information")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 🔧 App Settings")
+        
+        st.metric("Daily Question Limit", DAILY_QUESTION_LIMIT)
+        st.metric("Questions Asked Today", st.session_state.question_count)
+        st.metric("Remaining Questions", get_remaining_questions())
+        
+        if st.button("🔄 Reset Today's Count (Admin Only)", disabled=not st.session_state.admin_mode):
+            st.session_state.question_count = 0
+            st.success("Question count reset!")
+            st.rerun()
+    
+    with col2:
+        st.markdown("### ℹ️ About JainQuest")
+        
+        st.markdown("""
+        **JainQuest** is an AI-powered spiritual guide designed to:
+        
+        • Provide authentic Jain philosophy guidance
+        • Support spiritual growth and learning
+        • Offer practical advice for daily life
+        • Connect users with traditional Jain teachings
+        
+        **Features:**
+        🌟 Multi-language support (English & Gujarati)
+        📚 Based on authentic Jain sources
+        💬 Easy-to-understand pointwise answers
+        🛡️ Content safety and appropriateness
+        """)
+    
+    st.markdown("---")
+    st.markdown("### 📞 Support & Feedback")
+    
+    feedback = st.text_area("Share your feedback or suggestions:", height=100)
+    if st.button("Submit Feedback"):
+        if feedback.strip():
+            st.success("Thank you for your feedback! 🙏")
+        else:
+            st.warning("Please enter your feedback before submitting.")
+
+def process_user_question(question):
+    """Processes user question and generates AI response."""
+    # Check limits
+    if not st.session_state.admin_mode and st.session_state.question_count >= DAILY_QUESTION_LIMIT:
+        st.error(f"❌ Daily limit reached. You've asked {DAILY_QUESTION_LIMIT} questions today.")
+        return
+    
+    # Add user message
+    st.session_state.messages.append({"role": "user", "content": question})
+    
+    # Show thinking indicator
+    with st.spinner("🤔 Consulting Jain wisdom..."):
+        try:
+            # Get AI response
+            bot_response, source_docs, suggestions = get_ai_response(
+                question, 
+                st.session_state.repo_content, 
+                st.session_state.bytez_model
+            )
+            
+            # Add bot response
+            st.session_state.messages.append({"role": "assistant", "content": bot_response})
+            
+            # Update counter
+            st.session_state.question_count += 1
+            
+            # Refresh
+            st.rerun()
+            
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
+            st.session_state.messages.append({
+                "role": "assistant", 
+                "content": "I encountered an error while processing your question. Please try again."
+            })
+            st.rerun()
+
+# --- Main App ---
+def main():
+    # Initialize session state
+    initialize_user_session()
+    check_and_reset_limit()
+    
+    # Custom CSS for enhanced UI
+    st.markdown("""
+    <style>
+    /* Main container styling */
     .main .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
     }
     
-    h1, h2, h3 {
-        color: #2E7D32;
-        font-weight: 600;
+    /* Header styling */
+    .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        margin-bottom: 2rem;
     }
     
-    .chat-user {
+    /* Sidebar styling */
+    .css-1d391kg {
+        background-color: #f8f9fa;
+    }
+    
+    /* Button styling */
+    .stButton button {
+        border-radius: 10px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .stButton button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* Metric card styling */
+    .stMetric {
+        background: white;
+        padding: 1rem;
+        border-radius: 10px;
+        border-left: 4px solid #4CAF50;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Chat message styling */
+    .user-message {
         background: #E3F2FD;
         padding: 1rem;
         border-radius: 15px;
         margin: 0.5rem 0;
         border-left: 5px solid #1976D2;
-        font-size: 1.1rem;
     }
     
-    .chat-bot {
+    .bot-message {
         background: #F3E5F5;
         padding: 1rem;
         border-radius: 15px;
         margin: 0.5rem 0;
         border-left: 5px solid #7B1FA2;
-        font-size: 1.1rem;
-        line-height: 1.6;
     }
+    </style>
+    """, unsafe_allow_html=True)
     
-    .stButton button {
-        width: 100%;
-        background-color: #4CAF50;
-        color: white;
-        font-size: 1.2rem;
-        padding: 0.5rem 1rem;
-        border-radius: 10px;
-    }
+    # Render sidebar
+    render_sidebar()
     
-    .stTextInput textarea {
-        font-size: 1.1rem;
-        padding: 1rem;
-    }
-    
-    .info-box {
-        background: #E8F5E8;
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 5px solid #4CAF50;
-        margin: 1rem 0;
-    }
-    
-    .warning-box {
-        background: #FFEBEE;
-        padding: 1rem;
-        border-radius: 10px;
-        border-left: 5px solid #F44336;
-        margin: 1rem 0;
-    }
-    
-    /* High contrast for elders */
-    .main {
-        color: #000000;
-    }
-    
-    /* Ensure bullet points are properly displayed */
-    .chat-bot ul {
-        margin: 0;
-        padding-left: 1.5rem;
-    }
-    
-    .chat-bot li {
-        margin: 0.5rem 0;
-        font-size: 1.1rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# --- Header Section ---
-col1, col2 = st.columns([1, 3])
-
-with col1:
-    st.markdown("""
-    <div style="text-align: center;">
-        <h1 style="font-size: 3rem; margin: 0;">🙏</h1>
+    # Main content area
+    st.markdown(f"""
+    <div class="header">
+        <h1>🙏 Welcome to JainQuest</h1>
+        <p>Your AI Spiritual Guide for Jain Philosophy and Daily Practice</p>
+        {f"<h3>Namaste, {st.session_state.user_name}! 🌟</h3>" if st.session_state.user_name else ""}
     </div>
     """, unsafe_allow_html=True)
-
-with col2:
-    st.title("JainQuest")
-    st.markdown("**Spiritual Guide for Everyday Life**")
-
-# --- Simple Stats ---
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Questions Asked", st.session_state.question_count)
-with col2:
-    remaining = get_remaining_questions()
-    st.metric("Remaining Today", remaining)
-with col3:
-    status = "🌟 Unlimited" if st.session_state.admin_mode else "✅ Active"
-    st.metric("Status", status)
-
-# --- Content Guidelines ---
-st.markdown("""
-<div class="warning-box">
-    <h4 style="margin: 0; color: #D32F2F;">📜 Content Guidelines</h4>
-    <p style="margin: 0.5rem 0 0 0; font-size: 1.1rem;">
-    • I provide spiritual guidance based on Jain principles<br>
-    • I cannot answer questions about prohibited topics<br>
-    • Always consult experts for medical/legal advice<br>
-    • Focus on spiritual growth and inner peace
-    </p>
-</div>
-""", unsafe_allow_html=True)
-
-# --- Quick Action Buttons (Large & Clear) ---
-st.markdown("### Quick Questions")
-col1, col2, col3, col4 = st.columns(4)
-
-quick_questions = {
-    "Basic Jain Principles": "What are the basic principles of Jainism?",
-    "Three Jewels": "Explain the Three Jewels of Jainism",
-    "Ahimsa": "What is Ahimsa and how to practice it?",
-    "Meditation": "Simple meditation techniques in Jainism"
-}
-
-if col1.button("🔰 Basic Principles", use_container_width=True):
-    st.session_state.messages.append({"role": "user", "content": quick_questions["Basic Jain Principles"]})
-if col2.button("💎 Three Jewels", use_container_width=True):
-    st.session_state.messages.append({"role": "user", "content": quick_questions["Three Jewels"]})
-if col3.button("🕊️ Ahimsa", use_container_width=True):
-    st.session_state.messages.append({"role": "user", "content": quick_questions["Ahimsa"]})
-if col4.button("🧘 Meditation", use_container_width=True):
-    st.session_state.messages.append({"role": "user", "content": quick_questions["Meditation"]})
-
-# --- Info Box ---
-st.markdown("""
-<div class="info-box">
-    <h4 style="margin: 0; color: #2E7D32;">💡 How to Use</h4>
-    <p style="margin: 0.5rem 0 0 0; font-size: 1.1rem;">
-    • Ask any question about Jain philosophy<br>
-    • Seek emotional or spiritual guidance<br>
-    • Type in English or Gujarati<br>
-    • Get clear, pointwise answers<br>
-    • Based on authentic Jain teachings
-    </p>
-</div>
-""", unsafe_allow_html=True)
-
-# --- Admin Access (Simple & Discrete) ---
-with st.expander("🔧 Admin Settings"):
-    if not st.session_state.admin_mode:
-        admin_pass = st.text_input("Enter Admin Password", type="password")
-        if st.button("Enable Admin Mode"):
-            if admin_pass == ADMIN_PASSWORD:
-                st.session_state.admin_mode = True
-                st.success("Admin mode activated! Unlimited questions.")
-                st.rerun()
+    
+    # Render current page based on navigation
+    if st.session_state.current_page == "Chat":
+        render_chat_page()
+    elif st.session_state.current_page == "Learn":
+        render_learn_page()
+    elif st.session_state.current_page == "Settings":
+        render_settings_page()
+    
+    # Footer
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; color: #666; padding: 2rem;">
+        <p><strong>Powered by Digital Jain Pathshala • Built with ❤️ for the Jain Community</strong></p>
+        <p><em>For authentic spiritual guidance based on Jain teachings • Always consult human experts for critical decisions</em></p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Initialize AI Model if not already done
+    if st.session_state.bytez_model is None:
+        with st.spinner("🔄 Loading AI assistant..."):
+            bytez_model = initialize_bytez_model()
+            if bytez_model is not None:
+                st.session_state.bytez_model = bytez_model
             else:
-                st.error("Incorrect password")
-    else:
-        st.success("🛡️ Admin Mode: ACTIVE")
-        if st.button("Disable Admin Mode"):
-            st.session_state.admin_mode = False
-            st.rerun()
+                st.error("Failed to connect to AI service. Please refresh the page.")
+                st.stop()
+    
+    # Load Knowledge Base if not already done
+    if st.session_state.repo_content is None:
+        with st.spinner("📚 Loading knowledge base..."):
+            repo_content = load_repo_content()
+            if repo_content is not None:
+                st.session_state.repo_content = repo_content
+            else:
+                st.error("Failed to load knowledge base. Some features may be limited.")
 
-# --- Initialize AI Model ---
-if st.session_state.bytez_model is None:
-    with st.spinner("Loading AI assistant..."):
-        bytez_model = initialize_bytez_model()
-        if bytez_model is not None:
-            st.session_state.bytez_model = bytez_model
-        else:
-            st.error("Failed to connect to AI service.")
-            st.stop()
-
-# --- Load Knowledge Base ---
-if st.session_state.repo_content is None:
-    with st.spinner("Loading knowledge..."):
-        repo_content = load_repo_content()
-        if repo_content is not None:
-            st.session_state.repo_content = repo_content
-        else:
-            st.error("Failed to load knowledge base.")
-            st.stop()
-
-# --- Chat Display ---
-st.markdown("---")
-st.markdown("## 💬 Conversation")
-
-# Display chat messages
-for message in st.session_state.messages:
-    if message["role"] == "user":
-        st.markdown(f"""
-        <div class="chat-user">
-            <strong>You:</strong> {message["content"]}
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div class="chat-bot">
-            <strong>JainQuest:</strong> {message["content"]}
-        </div>
-        """, unsafe_allow_html=True)
-
-# --- Chat Input ---
-st.markdown("---")
-st.markdown("### 💭 Ask Your Question")
-
-# Simple language selector
-lang_col1, lang_col2 = st.columns(2)
-with lang_col1:
-    st.info("💬 You can type in English or Gujarati")
-with lang_col2:
-    st.info("📱 Easy to read for all ages")
-
-question = st.text_area(
-    "Type your question here...", 
-    height=100,
-    placeholder="Example: What is Jainism? OR જૈન ધર્મ શું છે? OR I'm feeling sad, what should I do?"
-)
-
-col1, col2 = st.columns([3, 1])
-with col2:
-    send_clicked = st.button("🚀 Send Question", use_container_width=True)
-
-if send_clicked and question.strip():
-    # Check limits
-    if not st.session_state.admin_mode and st.session_state.question_count >= DAILY_QUESTION_LIMIT:
-        st.error(f"❌ Daily limit reached. You've asked {DAILY_QUESTION_LIMIT} questions today.")
-    else:
-        # Add user message
-        st.session_state.messages.append({"role": "user", "content": question})
-        
-        # Show thinking indicator
-        with st.spinner("🤔 Thinking..."):
-            try:
-                # Get AI response
-                bot_response, source_docs, suggestions = get_ai_response(
-                    question, 
-                    st.session_state.repo_content, 
-                    st.session_state.bytez_model
-                )
-                
-                # Add bot response
-                st.session_state.messages.append({"role": "assistant", "content": bot_response})
-                
-                # Update counter
-                st.session_state.question_count += 1
-                
-                # Refresh
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"Error: {str(e)}")
-                st.session_state.messages.append({
-                    "role": "assistant", 
-                    "content": "I encountered an error. Please try again."
-                })
-                st.rerun()
-
-# --- Footer ---
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #666; font-size: 1rem;">
-    <p><strong>Powered by Digital Jain Pathshala</strong></p>
-    <p>Created with ❤️ by Saumya Sanghvi</p>
-    <p><em>For spiritual guidance based on authentic Jain teachings</em></p>
-</div>
-""", unsafe_allow_html=True)
+if __name__ == "__main__":
+    main()
