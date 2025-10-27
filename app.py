@@ -41,7 +41,10 @@ IST = pytz.timezone('Asia/Kolkata')
 def initialize_user_session():
     """Initializes session state variables if they don't exist."""
     if "messages" not in st.session_state:
-        st.session_state.messages = []
+        # Add a welcome message to start the chat
+        st.session_state.messages = [
+            {"role": "assistant", "content": "Welcome to Jain Yuva Bot (JYB)! 🙏\n\nI'm an expert on the AI-Yashvi repository. Ask me anything about its content, or general questions about Jainism."}
+        ]
     
     if "question_count" not in st.session_state:
         st.session_state.question_count = 0
@@ -67,27 +70,30 @@ def get_remaining_questions():
 
 # --- RAG Functions ---
 
-@st.cache_resource(show_spinner="Loading knowledge from AI-Yashvi repo...")
+@st.cache_resource() # Removed show_spinner, we'll use a manual progress bar
 def load_repo_and_build_store():
     """
     Clones the hard-coded GitHub repo, loads its text files, splits them,
     creates embeddings using a local model, and returns a FAISS vector store.
+    Shows a progress bar during the process.
     """
     try:
+        # Create a progress bar
+        progress_bar = st.progress(0, text="Initializing...")
+        
         # Create a temporary directory
         with tempfile.TemporaryDirectory() as temp_dir:
-            st.write(f"Cloning {REPO_URL}...")
-            # Clone the repo
+            progress_bar.progress(5, text=f"Cloning {REPO_URL}...")
             Repo.clone_from(REPO_URL, temp_dir)
             
             # Load documents
-            st.write("Loading documents...")
+            progress_bar.progress(20, text="Loading documents from repo...")
             loader = DirectoryLoader(
                 temp_dir,
                 glob="**/*[.txt,.md,.py,.rst]",  # Load these file types
                 loader_cls=TextLoader,
                 use_multithreading=True,
-                show_progress=True,
+                show_progress=False, # Hide internal progress bar
                 silent_errors=True # Ignore files it can't read
             )
             documents = loader.load()
@@ -96,29 +102,27 @@ def load_repo_and_build_store():
                 st.error("No compatible documents (.txt, .md, .py, .rst) found in this repository.")
                 return None
 
-            st.write(f"Loaded {len(documents)} documents.")
+            progress_bar.progress(40, text=f"Loaded {len(documents)} documents. Splitting...")
             
             # Split documents into chunks
-            st.write("Splitting documents into chunks...")
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
             texts = text_splitter.split_documents(documents)
             
-            st.write(f"Created {len(texts)} text chunks.")
+            progress_bar.progress(60, text=f"Created {len(texts)} text chunks. Creating embeddings...")
             
-            # --- MODIFICATION ---
-            # Use a free, local model from HuggingFace to avoid Google's API rate limits.
-            # This runs on the server's CPU.
-            st.write("Creating embeddings (using local model)...")
+            # Use a free, local model from HuggingFace
             embeddings = HuggingFaceEmbeddings(
                 model_name="sentence-transformers/all-MiniLM-L6-v2"
             )
-            # --- END MODIFICATION ---
             
             # Create FAISS vector store
-            st.write("Building vector store... (This may take a moment)")
+            progress_bar.progress(80, text="Building vector store... (This may take a moment)")
             vector_store = FAISS.from_documents(texts, embeddings)
             
-            st.success("Knowledge base loaded successfully!")
+            progress_bar.progress(100, text="Knowledge base loaded successfully!")
+            # Make the progress bar disappear
+            progress_bar.empty()
+            
             return vector_store
 
     except Exception as e:
@@ -195,17 +199,19 @@ if "qa_chain" not in st.session_state or st.session_state.qa_chain is None:
         st.error("Failed to load the knowledge base. The app cannot start.")
         st.stop() # Stop the app if knowledge loading fails
 
-st.divider()
-
 # --- Chat UI ---
-st.subheader("Chat with JYB")
+# Create a container for the chat history
+chat_container = st.container(border=True)
+
+with chat_container:
+    # Display chat history
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+# Place info and chat input *after* the container
 remaining = get_remaining_questions()
 st.info(f"**Note:** You can ask up to **{remaining}** more question(s) today. Your daily limit resets at midnight IST.")
-
-# Display chat history
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
 
 # Chat input
 if prompt := st.chat_input("Ask your question..."):
@@ -213,10 +219,13 @@ if prompt := st.chat_input("Ask your question..."):
     if st.session_state.question_count >= 5:
         st.warning("You have reached your daily limit of 5 questions. Please come back tomorrow!")
     else:
-        # Add user message to session state and display it
+        # Add user message to session state
         st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+        
+        # Display user message in the container
+        with chat_container:
+            with st.chat_message("user"):
+                st.markdown(prompt)
 
         # Show a spinner
         with st.spinner("JYB is thinking..."):
@@ -229,22 +238,29 @@ if prompt := st.chat_input("Ask your question..."):
                     response_data = st.session_state.qa_chain.invoke({"query": prompt})
                     bot_response = response_data["result"]
                     
-                    # Optional: Display sources
-                    with st.expander("Show Sources from Repository"):
-                        for doc in response_data["source_documents"]:
-                            st.info(f"Source: `{doc.metadata['source']}` (snippet)")
-                            st.code(doc.page_content[:500] + "...")
+                    # Add bot response to session state
+                    st.session_state.messages.append({"role": "assistant", "content": bot_response})
+                    
+                    # Display bot response in the container
+                    with chat_container:
+                        with st.chat_message("assistant"):
+                            st.markdown(bot_response)
+                            # Optional: Display sources
+                            with st.expander("Show Sources from Repository"):
+                                for doc in response_data["source_documents"]:
+                                    st.info(f"Source: `{doc.metadata['source']}` (snippet)")
+                                    st.code(doc.page_content[:500] + "...")
                 
                 else:
                     bot_response = "Error: The question-answering chain is not loaded. Please reload the app."
+                    st.session_state.messages.append({"role": "assistant", "content": bot_response})
+                    with chat_container:
+                        with st.chat_message("assistant"):
+                            st.markdown(bot_response)
 
-                # Add bot response to session state and display it
-                st.session_state.messages.append({"role": "assistant", "content": bot_response})
-                with st.chat_message("assistant"):
-                    st.markdown(bot_response)
-                
                 # Increment the question count
                 st.session_state.question_count += 1
+                # Rerun to update the "remaining" count and clear the input box
                 st.rerun()
 
             except Exception as e:
