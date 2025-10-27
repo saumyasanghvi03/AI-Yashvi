@@ -6,3 +6,6 @@ sentence-transformers==2.2.2
 transformers==4.35.2
 torch==2.1.0
 accelerate==0.24.1
+requests==2.31.0
+langchain-community==0.0.14
+langchain-text-splitters==0.0.1
