@@ -9,7 +9,12 @@ from git import Repo
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
+# --- CHANGED IMPORTS ---
+# We no longer need Google for embeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
+# We import HuggingFace for local, free embeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
+# --- END CHANGED IMPORTS ---
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 
@@ -90,8 +95,14 @@ def load_repo_and_build_store():
             
             st.write(f"Created {len(texts)} text chunks.")
             
-            st.write("Creating embeddings...")
-            embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=GEMINI_API_KEY)
+            st.write("Creating embeddings (using local model)...")
+            # --- MODIFICATION ---
+            # We now use a free, local model from HuggingFace to avoid API rate limits.
+            # This runs on the server's CPU.
+            embeddings = HuggingFaceEmbeddings(
+                model_name="sentence-transformers/all-MiniLM-L6-v2"
+            )
+            # --- END MODIFICATION ---
             
             st.write("Building vector store... (This may take a moment)")
             vector_store = FAISS.from_documents(texts, embeddings)
@@ -229,5 +240,6 @@ if prompt := st.chat_input("Ask your question..."):
 
             except Exception as e:
                 st.error(f"An error occurred: {e}")
+
 
 
