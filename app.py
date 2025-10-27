@@ -80,6 +80,247 @@ Digital Jain Pathshala - Key Spiritual Topics:
   - Aparigraha (Non-possessiveness)
 """
 
+# --- Comprehensive Quick Questions Database ---
+QUICK_QUESTIONS_DATABASE = {
+    "navkar_mantra": {
+        "question": "What is the Navkar Mantra and its significance?",
+        "answer": """**મુખ્ય વિચાર / Main Concept**
+• Navkar Mantra is the most fundamental mantra in Jainism that honors the five supreme beings
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• Also known as Namokar Mantra or Panch Namaskar Mantra
+• Contains salutations to Arihants, Siddhas, Acharyas, Upadhyayas, and Sadhus
+• Considered the essence of Jain philosophy
+• Can be chanted at any time without restrictions
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• Respect for all enlightened souls - fundamental Jain value
+• Non-attachment - mantra focuses on spiritual qualities, not material gains
+• Equality - honors all levels of spiritual achievement
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• Chant 5-10 times daily morning after waking up
+• Recite before meals as gratitude practice
+• Use for meditation focusing on each of the five beings
+• Teach children as their first spiritual practice
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• This mantra connects you with centuries of spiritual wisdom and peace
+
+**સારાંશ / Summary**
+• Navkar Mantra is your daily connection to Jain spiritual heritage"""
+    },
+    "jainism_basics": {
+        "question": "What are the basic principles of Jainism?",
+        "answer": """**મુખ્ય વિચાર / Main Concept**
+• Jainism is built on three core principles: Right Faith, Right Knowledge, Right Conduct
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• Ahimsa (Non-violence) - fundamental principle governing all actions
+• Anekantavada (Multiple viewpoints) - respect for different perspectives
+• Aparigraha (Non-possessiveness) - detachment from material things
+• Five Mahavratas - great vows for spiritual progress
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• Every soul has potential for liberation (Moksha)
+• Karma theory - actions determine spiritual progress
+• Self-effort is essential for spiritual growth
+• Compassion for all living beings
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• Practice vegetarianism to minimize harm
+• Be mindful of your thoughts, words, and actions
+• Limit possessions to what you truly need
+• Practice forgiveness daily
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• These principles guide you toward lasting inner peace
+
+**સારાંશ / Summary**
+• Jain principles provide a complete roadmap for spiritual living"""
+    },
+    "ahimsa": {
+        "question": "What is Ahimsa and how to practice it daily?",
+        "answer": """**મુખ્ય વિચાર / Main Concept**
+• Ahimsa means non-violence in thought, speech, and action toward all living beings
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• Includes mental non-violence - avoiding harmful thoughts
+• Extends to all creatures, big and small
+• More than just not killing - includes not causing mental pain
+• Basis for vegetarianism in Jainism
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• Foundation of all other Jain principles
+• Essential for spiritual progress
+• Reduces karmic bondage
+• Develops compassion and empathy
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• Check food for small insects before cooking
+• Speak gently without hurting others' feelings
+• Walk carefully to avoid stepping on insects
+• Practice forgiveness when others hurt you
+• Use natural cleaning methods instead of insecticides
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• Practicing Ahimsa brings profound peace and connection with all life
+
+**સારાંશ / Summary**
+• Ahimsa is the heart of Jain practice - start with small daily actions"""
+    },
+    "three_jewels": {
+        "question": "Explain the Three Jewels of Jainism",
+        "answer": """**મુખ્ય વિચાર / Main Concept**
+• The Three Jewels (Ratnatraya) are Right Faith, Right Knowledge, and Right Conduct - the path to liberation
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• Right Faith (Samyak Darshan) - belief in Jain principles
+• Right Knowledge (Samyak Gyan) - understanding true nature of reality
+• Right Conduct (Samyak Charitra) - living according to Jain ethics
+• All three are interconnected and essential
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• Foundation of spiritual practice
+• Path to Moksha (liberation)
+• Progressive development - one leads to another
+• Applicable to both householders and monks
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• Start with Right Faith - study basic Jain principles
+• Develop Right Knowledge - read Jain scriptures regularly
+• Practice Right Conduct - follow five minor vows daily
+• Attend spiritual discourses for guidance
+• Practice self-reflection regularly
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• The Three Jewels provide clear guidance for your spiritual journey
+
+**સારાંશ / Summary**
+• Follow the Three Jewels step by step for steady spiritual progress"""
+    },
+    "ayambil": {
+        "question": "What is Ayambil and its spiritual benefits?",
+        "answer": """**મુખ્ય વિચાર / Main Concept**
+• Ayambil is a Jain spiritual fasting practice involving one meal of boiled grains without spices or flavorings
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• Single meal during daytime only
+• Boiled grains without salt, oil, spices, or dairy
+• Practice of taste renunciation (Ras Parityag)
+• Often observed during Navpad Oli
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• Control over sense of taste
+• Reduction of karmic bondage
+• Development of self-discipline
+• Spiritual purification
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• Start with one day Ayambil if new to fasting
+• Choose simple grains like rice or wheat
+• Maintain hydration with boiled water
+• Combine with meditation and chanting
+• Consult elders for proper procedure
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• Ayambil strengthens your willpower and spiritual determination
+
+**સારાંશ / Summary**
+• Ayambil is powerful spiritual practice for self-purification"""
+    },
+    "meditation": {
+        "question": "What are the main meditation techniques in Jainism?",
+        "answer": """**મુખ્ય વિચાર / Main Concept**
+• Jain meditation focuses on self-realization, peace, and spiritual purification
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• Preksha Meditation - for self-awareness and perception
+• Samayik - practice of equanimity for 48 minutes
+• Kayotsarg - complete relaxation and detachment
+• Anupreksha - contemplation on fundamental truths
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• Meditation purifies soul from karmic particles
+• Develops non-attachment and equanimity
+• Enhances spiritual understanding
+• Prepares for higher spiritual states
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• Start with 10 minutes Preksha Meditation daily
+• Practice Samayik on weekends initially
+• Learn Kayotsarg for stress relief
+• Join meditation classes for proper guidance
+• Create peaceful meditation space at home
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• Regular meditation brings deep peace and mental clarity
+
+**સારાંશ / Summary**
+• Jain meditation offers practical tools for inner transformation"""
+    },
+    "karma_theory": {
+        "question": "Explain the Jain concept of Karma",
+        "answer": """**મુખ્ય વિચાર / Main Concept**
+• Karma in Jainism is subtle matter that binds to soul based on actions, determining spiritual progress
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• Karma is physical substance, not just philosophical concept
+• Eight main types of Karma that affect soul
+• Karma binds through actions driven by passions
+• Liberation achieved by stopping influx and shedding existing Karma
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• Every action has consequences
+• Self-effort can change karmic destiny
+• Right knowledge and conduct destroy Karma
+• Ultimate goal is complete freedom from Karma
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• Practice mindfulness in daily actions
+• Cultivate detachment from results
+• Regular meditation to purify thoughts
+• Study scriptures to understand karmic laws
+• Perform Pratikraman for introspection
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• Understanding Karma empowers you to shape your spiritual destiny
+
+**સારાંશ / Summary**
+• Jain Karma theory provides scientific approach to spiritual progress"""
+    },
+    "vegetarianism": {
+        "question": "Why is vegetarianism important in Jainism?",
+        "answer": """**મુખ્ય વિચાર / Main Concept**
+• Vegetarianism is essential in Jainism as practical expression of Ahimsa (non-violence)
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• Minimizes harm to living beings
+• Supports spiritual purity
+• Traditional Jain diet excludes root vegetables
+• Many Jains also avoid after-sunset eating
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• All living beings have soul and desire to live
+• Causing unnecessary harm creates bad Karma
+• Pure food leads to pure thoughts
+• Diet affects spiritual progress directly
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• Choose fresh, seasonal vegetables and fruits
+• Avoid root vegetables if possible
+• Check food for insects before cooking
+• Practice gratitude before meals
+• Consider lacto-vegetarian diet
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• Vegetarian living brings harmony with all life forms
+
+**સારાંશ / Summary**
+• Vegetarianism is practical spirituality that benefits all beings"""
+    }
+}
+
 def initialize_user_session():
     """Initializes session state variables if they don't exist."""
     if "messages" not in st.session_state:
@@ -520,7 +761,7 @@ REMEMBER: ONLY BULLET POINTS, NO PARAGRAPHS!"""
     except Exception as e:
         return f"Error processing your question: {str(e)}", [], []
 
-# --- Simplified UI Components ---
+# --- Enhanced UI Components ---
 def render_sidebar():
     """Renders the enhanced sidebar with navigation and user info."""
     with st.sidebar:
@@ -551,10 +792,10 @@ def render_sidebar():
         st.markdown("---")
         st.subheader("🧭 Navigation")
         
-        nav_options = ["💬 Chat", "📚 Learn", "🛠️ Settings"]
+        nav_options = ["💬 Chat", "❓ Quick Questions", "📚 Learn", "🛠️ Settings"]
         for option in nav_options:
             if st.button(option, use_container_width=True, key=f"nav_{option}"):
-                st.session_state.current_page = option.replace("💬 ", "").replace("📚 ", "").replace("🛠️ ", "")
+                st.session_state.current_page = option.replace("💬 ", "").replace("❓ ", "").replace("📚 ", "").replace("🛠️ ", "")
                 st.rerun()
         
         # Quick Stats
@@ -600,6 +841,130 @@ def render_sidebar():
         • JainWorld
         """)
 
+def render_quick_questions_page():
+    """Renders the comprehensive quick questions page."""
+    st.markdown("## ❓ Quick Questions - Instant Spiritual Guidance")
+    
+    st.markdown("""
+    <div style='background: #E8F5E8; padding: 1.5rem; border-radius: 15px; margin: 1rem 0;'>
+        <h3 style='color: #2E7D32; margin: 0;'>🌟 Instant Answers to Common Questions</h3>
+        <p style='margin: 0.5rem 0 0 0;'>Click any question below to get immediate, well-structured answers based on authentic Jain teachings.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Quick Questions in organized sections
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 📿 Mantras & Practices")
+        
+        # Navkar Mantra
+        with st.expander("📿 Navkar Mantra - The Fundamental Mantra", expanded=True):
+            st.markdown("**What is the Navkar Mantra and its significance?**")
+            if st.button("Get Answer", key="navkar_answer"):
+                st.session_state.messages.append({"role": "user", "content": QUICK_QUESTIONS_DATABASE["navkar_mantra"]["question"]})
+                st.session_state.messages.append({"role": "assistant", "content": QUICK_QUESTIONS_DATABASE["navkar_mantra"]["answer"]})
+                st.session_state.question_count += 1
+                st.session_state.current_page = "Chat"
+                st.rerun()
+        
+        # Meditation
+        with st.expander("🧘 Jain Meditation Techniques"):
+            st.markdown("**What are the main meditation techniques in Jainism?**")
+            if st.button("Get Answer", key="meditation_answer"):
+                st.session_state.messages.append({"role": "user", "content": QUICK_QUESTIONS_DATABASE["meditation"]["question"]})
+                st.session_state.messages.append({"role": "assistant", "content": QUICK_QUESTIONS_DATABASE["meditation"]["answer"]})
+                st.session_state.question_count += 1
+                st.session_state.current_page = "Chat"
+                st.rerun()
+        
+        # Ayambil
+        with st.expander("🎯 Ayambil & Spiritual Fasting"):
+            st.markdown("**What is Ayambil and its spiritual benefits?**")
+            if st.button("Get Answer", key="ayambil_answer"):
+                st.session_state.messages.append({"role": "user", "content": QUICK_QUESTIONS_DATABASE["ayambil"]["question"]})
+                st.session_state.messages.append({"role": "assistant", "content": QUICK_QUESTIONS_DATABASE["ayambil"]["answer"]})
+                st.session_state.question_count += 1
+                st.session_state.current_page = "Chat"
+                st.rerun()
+    
+    with col2:
+        st.markdown("### 🔰 Core Principles")
+        
+        # Jainism Basics
+        with st.expander("🔰 Basic Principles of Jainism", expanded=True):
+            st.markdown("**What are the basic principles of Jainism?**")
+            if st.button("Get Answer", key="basics_answer"):
+                st.session_state.messages.append({"role": "user", "content": QUICK_QUESTIONS_DATABASE["jainism_basics"]["question"]})
+                st.session_state.messages.append({"role": "assistant", "content": QUICK_QUESTIONS_DATABASE["jainism_basics"]["answer"]})
+                st.session_state.question_count += 1
+                st.session_state.current_page = "Chat"
+                st.rerun()
+        
+        # Ahimsa
+        with st.expander("🕊️ Ahimsa - Non-violence"):
+            st.markdown("**What is Ahimsa and how to practice it daily?**")
+            if st.button("Get Answer", key="ahimsa_answer"):
+                st.session_state.messages.append({"role": "user", "content": QUICK_QUESTIONS_DATABASE["ahimsa"]["question"]})
+                st.session_state.messages.append({"role": "assistant", "content": QUICK_QUESTIONS_DATABASE["ahimsa"]["answer"]})
+                st.session_state.question_count += 1
+                st.session_state.current_page = "Chat"
+                st.rerun()
+        
+        # Three Jewels
+        with st.expander("💎 Three Jewels of Jainism"):
+            st.markdown("**Explain the Three Jewels of Jainism**")
+            if st.button("Get Answer", key="three_jewels_answer"):
+                st.session_state.messages.append({"role": "user", "content": QUICK_QUESTIONS_DATABASE["three_jewels"]["question"]})
+                st.session_state.messages.append({"role": "assistant", "content": QUICK_QUESTIONS_DATABASE["three_jewels"]["answer"]})
+                st.session_state.question_count += 1
+                st.session_state.current_page = "Chat"
+                st.rerun()
+    
+    # Second row of questions
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        st.markdown("### 📚 Philosophy & Concepts")
+        
+        # Karma Theory
+        with st.expander("🔄 Karma Theory in Jainism"):
+            st.markdown("**Explain the Jain concept of Karma**")
+            if st.button("Get Answer", key="karma_answer"):
+                st.session_state.messages.append({"role": "user", "content": QUICK_QUESTIONS_DATABASE["karma_theory"]["question"]})
+                st.session_state.messages.append({"role": "assistant", "content": QUICK_QUESTIONS_DATABASE["karma_theory"]["answer"]})
+                st.session_state.question_count += 1
+                st.session_state.current_page = "Chat"
+                st.rerun()
+    
+    with col4:
+        st.markdown("### 🌱 Lifestyle & Diet")
+        
+        # Vegetarianism
+        with st.expander("🌱 Vegetarianism in Jainism"):
+            st.markdown("**Why is vegetarianism important in Jainism?**")
+            if st.button("Get Answer", key="vegetarianism_answer"):
+                st.session_state.messages.append({"role": "user", "content": QUICK_QUESTIONS_DATABASE["vegetarianism"]["question"]})
+                st.session_state.messages.append({"role": "assistant", "content": QUICK_QUESTIONS_DATABASE["vegetarianism"]["answer"]})
+                st.session_state.question_count += 1
+                st.session_state.current_page = "Chat"
+                st.rerun()
+    
+    # Information about the answers
+    st.markdown("---")
+    st.markdown("""
+    <div style='background: #E3F2FD; padding: 1rem; border-radius: 10px;'>
+        <h4 style='color: #1565C0; margin: 0;'>💡 About These Answers</h4>
+        <p style='margin: 0.5rem 0 0 0;'>
+        • All answers are pre-written based on authentic Jain sources<br>
+        • Structured in easy-to-understand bullet points<br>
+        • Include practical advice for daily life<br>
+        • Available in both English and Gujarati formats<br>
+        • Count toward your daily question limit
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
 def render_chat_page():
     """Renders the main chat interface."""
     # Header with quick actions
@@ -613,7 +978,7 @@ def render_chat_page():
             ]
             st.rerun()
     
-    # Simple guidance section instead of quick topics
+    # Simple guidance section
     st.markdown("---")
     st.markdown("""
     <div style='background: #E8F5E8; padding: 1.5rem; border-radius: 15px; margin: 1rem 0;'>
@@ -622,7 +987,7 @@ def render_chat_page():
         • Ask specific questions about Jain philosophy, principles, or practices<br>
         • You can type in English or Gujarati<br>
         • Get clear, pointwise answers based on authentic sources<br>
-        • Focus on spiritual growth and practical guidance
+        • Visit <strong>Quick Questions</strong> in sidebar for instant answers to common topics
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -794,6 +1159,7 @@ def render_settings_page():
         🌟 Multi-language support (English & Gujarati)
         📚 Based on authentic Jain sources including Digital Jain Pathshala
         💬 Easy-to-understand pointwise answers
+        ❓ Quick Questions for instant learning
         🛡️ Content safety and appropriateness
         """)
     
@@ -929,6 +1295,8 @@ def main():
     # Render current page based on navigation
     if st.session_state.current_page == "Chat":
         render_chat_page()
+    elif st.session_state.current_page == "Quick Questions":
+        render_quick_questions_page()
     elif st.session_state.current_page == "Learn":
         render_learn_page()
     elif st.session_state.current_page == "Settings":
