@@ -359,6 +359,9 @@ def initialize_user_session():
     
     if "user_name" not in st.session_state:
         st.session_state.user_name = ""
+    
+    if "show_fallback_ui" not in st.session_state:
+        st.session_state.show_fallback_ui = False
 
 def check_and_reset_limit():
     """Checks if the day has changed (midnight IST) and resets the limit."""
@@ -822,6 +825,7 @@ def get_fallback_response(question):
     # --- END REPAIR ---
     
     # Generic fallback responses (if models *are* loaded but just failed)
+    # This message will be INTERCEPTED by process_user_question
     fallback_responses = {
         'english': """**મુખ્ય વિચાર / Main Concept**
 • I'm currently experiencing technical difficulties with my AI models
@@ -1200,71 +1204,131 @@ def render_quick_questions_page():
 
 def render_chat_page():
     """Renders the main chat interface."""
-    # Header with quick actions
-    col1, col2 = st.columns([3, 1])
-    with col1:
+
+    # --- REPAIR 1: Check if AI models are available before rendering chat ---
+    if not st.session_state.ai_models:
         st.markdown("### 💭 Ask Your Spiritual Questions")
-    with col2:
-        if st.button("🔄 Clear Chat", use_container_width=True):
-            st.session_state.messages = [
-                {"role": "assistant", "content": "Chat cleared! How can I help you with Jain philosophy today? 🌟"}
-            ]
+        st.markdown("---")
+        
+        st.error("""
+        **AI Chat Disabled: Technical Issue**
+        
+        The core AI models for conversation are not available. This is likely because the required Python packages (`bytez` or `transformers`) are not installed in this environment.
+        
+        **You can still use the app's other features:**
+        """)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("❓ Go to Quick Questions", use_container_width=True, type="primary"):
+                st.session_state.current_page = "Quick Questions"
+                st.rerun()
+        with col2:
+            if st.button("📚 Go to Learn", use_container_width=True, type="primary"):
+                st.session_state.current_page = "Learn"
+                st.rerun()
+                
+        st.markdown("---")
+        st.warning("If you are the app developer, please install the missing packages: `pip install bytez transformers torch accelerate`")
+
+    # --- REPAIR 2: Check if a runtime fallback occurred ---
+    elif st.session_state.show_fallback_ui:
+        st.markdown("### 💭 Ask Your Spiritual Questions")
+        st.markdown("---")
+        
+        st.error("""
+        **AI Chat Temporarily Unavailable**
+        
+        We are experiencing technical difficulties connecting to the AI models. This may be due to high traffic or an API service issue.
+        
+        **You can still use the app's other features:**
+        """)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("❓ Go to Quick Questions", use_container_width=True, type="primary"):
+                st.session_state.current_page = "Quick Questions"
+                st.session_state.show_fallback_ui = False # Reset flag
+                st.rerun()
+        with col2:
+            if st.button("📚 Go to Learn", use_container_width=True, type="primary"):
+                st.session_state.current_page = "Learn"
+                st.session_state.show_fallback_ui = False # Reset flag
+                st.rerun()
+                
+        st.markdown("---")
+        if st.button("🔄 Try Reconnecting to Chat"):
+            st.session_state.show_fallback_ui = False
             st.rerun()
-    
-    # Simple guidance section
-    st.markdown("---")
-    st.markdown("""
-    <div style='background: #E8F5E8; padding: 1.5rem; border-radius: 15px; margin: 1rem 0;'>
-        <h4 style='color: #2E7D32; margin: 0;'>💡 How to Get the Best Answers</h4>
-        <p style='margin: 0.5rem 0 0 0;'>
-        • Ask specific questions about Jain philosophy, principles, or practices<br>
-        • You can type in English or Gujarati<br>
-        • Get clear, pointwise answers based on authentic sources<br>
-        • Visit <strong>Quick Questions</strong> in sidebar for instant answers to common topics
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Chat Container
-    st.markdown("---")
-    
-    # Chat messages display
-    chat_container = st.container(height=500, border=True)
-    
-    with chat_container:
-        for message in st.session_state.messages:
-            if message["role"] == "user":
-                st.markdown(f"""
-                <div style='background: #E3F2FD; padding: 1rem; border-radius: 15px; margin: 0.5rem 0; border-left: 5px solid #1976D2;'>
-                    <div style='font-weight: bold; color: #1565C0;'>👤 You</div>
-                    <div style='margin-top: 0.5rem; font-size: 1.1rem;'>{message["content"]}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div style='background: #F3E5F5; padding: 1rem; border-radius: 15px; margin: 0.5rem 0; border-left: 5px solid #7B1FA2;'>
-                    <div style='font-weight: bold; color: #6A1B9A;'>🙏 JainQuest</div>
-                    <div style='margin-top: 0.5rem; font-size: 1.1rem; line-height: 1.6;'>{message["content"]}</div>
-                </div>
-                """, unsafe_allow_html=True)
-    
-    # Chat input
-    st.markdown("---")
-    question = st.text_area(
-        "**Type your spiritual question here...**", 
-        height=120,
-        placeholder="Example: What is the meaning of life according to Jainism? OR જૈન ધર્મ મુજબ જીવનનો અર્થ શું છે? OR How can I find inner peace?",
-        key="chat_input"
-    )
-    
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        st.info("💡 You can ask in English or Gujarati • 📚 Responses based on authentic Jain sources including Digital Jain Pathshala")
-    with col2:
-        send_clicked = st.button("🚀 Send Question", use_container_width=True, type="primary")
-    
-    if send_clicked and question.strip():
-        process_user_question(question)
+        
+    else:
+        # --- Original Chat Page Code ---
+        # Header with quick actions
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("### 💭 Ask Your Spiritual Questions")
+        with col2:
+            if st.button("🔄 Clear Chat", use_container_width=True):
+                st.session_state.messages = [
+                    {"role": "assistant", "content": "Chat cleared! How can I help you with Jain philosophy today? 🌟"}
+                ]
+                st.rerun()
+        
+        # Simple guidance section
+        st.markdown("---")
+        st.markdown("""
+        <div style='background: #E8F5E8; padding: 1.5rem; border-radius: 15px; margin: 1rem 0;'>
+            <h4 style='color: #2E7D32; margin: 0;'>💡 How to Get the Best Answers</h4>
+            <p style='margin: 0.5rem 0 0 0;'>
+            • Ask specific questions about Jain philosophy, principles, or practices<br>
+            • You can type in English or Gujarati<br>
+            • Get clear, pointwise answers based on authentic sources<br>
+            • Visit <strong>Quick Questions</strong> in sidebar for instant answers to common topics
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Chat Container
+        st.markdown("---")
+        
+        # Chat messages display
+        chat_container = st.container(height=500, border=True)
+        
+        with chat_container:
+            for message in st.session_state.messages:
+                if message["role"] == "user":
+                    st.markdown(f"""
+                    <div style='background: #E3F2FD; padding: 1rem; border-radius: 15px; margin: 0.5rem 0; border-left: 5px solid #1976D2;'>
+                        <div style='font-weight: bold; color: #1565C0;'>👤 You</div>
+                        <div style='margin-top: 0.5rem; font-size: 1.1rem;'>{message["content"]}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div style='background: #F3E5F5; padding: 1rem; border-radius: 15px; margin: 0.5rem 0; border-left: 5px solid #7B1FA2;'>
+                        <div style='font-weight: bold; color: #6A1B9A;'>🙏 JainQuest</div>
+                        <div style='margin-top: 0.5rem; font-size: 1.1rem; line-height: 1.6;'>{message["content"]}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+        
+        # Chat input
+        st.markdown("---")
+        question = st.text_area(
+            "**Type your spiritual question here...**", 
+            height=120,
+            placeholder="Example: What is the meaning of life according to Jainism? OR જૈન ધર્મ મુજબ જીવનનો અર્થ શું છે? OR How can I find inner peace?",
+            key="chat_input"
+        )
+        
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.info("💡 You can ask in English or Gujarati • 📚 Responses based on authentic Jain sources including Digital Jain Pathshala")
+        with col2:
+            send_clicked = st.button("🚀 Send Question", use_container_width=True, type="primary")
+        
+        if send_clicked and question.strip():
+            process_user_question(question)
+    # --- END REPAIR ---
 
 def render_learn_page():
     """Renders the learning resources page."""
@@ -1435,6 +1499,16 @@ def process_user_question(question):
                 st.session_state.ai_models
             )
             
+            # --- REPAIR: Intercept generic fallback message ---
+            if "Technical issue detected - using fallback mode" in bot_response:
+                # Don't append this message.
+                # Instead, set a state to show the error UI.
+                st.session_state.show_fallback_ui = True
+                st.session_state.messages.pop() # Remove the user's message
+                st.rerun()
+                return # Stop processing
+            # --- END REPAIR ---
+                
             # Add bot response
             st.session_state.messages.append({"role": "assistant", "content": bot_response})
             
