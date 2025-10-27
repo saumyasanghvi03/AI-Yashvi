@@ -6,30 +6,6 @@ import os
 import shutil
 from git import Repo
 
-# --- SAFE IMPORTS WITH FALLBACKS ---
-try:
-    # Try new import locations first
-    from langchain_community.document_loaders import DirectoryLoader, TextLoader
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
-    from langchain_community.vectorstores import FAISS
-    from langchain_community.llms import Ollama
-    from langchain_community.embeddings import HuggingFaceEmbeddings
-    from langchain_core.prompts import PromptTemplate
-    from langchain.chains import RetrievalQA
-except ImportError:
-    # Fall back to old import locations
-    try:
-        from langchain.document_loaders import DirectoryLoader, TextLoader
-        from langchain.text_splitter import RecursiveCharacterTextSplitter
-        from langchain.vectorstores import FAISS
-        from langchain.llms import Ollama
-        from langchain.embeddings import HuggingFaceEmbeddings
-        from langchain.prompts import PromptTemplate
-        from langchain.chains import RetrievalQA
-    except ImportError as e:
-        st.error(f"Failed to import required LangChain modules: {e}")
-        st.stop()
-
 # --- Configuration ---
 st.set_page_config(page_title="Jain Yuva Bot (RAG)", page_icon="🙏")
 
@@ -43,7 +19,7 @@ def initialize_user_session():
     """Initializes session state variables if they don't exist."""
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Welcome to Jain Yuva Bot (JYB)! 🙏\n\nI'm an expert on the AI-Yashvi repository. Ask me anything about its content, or general questions about Jainism.\n\n*Running completely locally with free models!*"}
+            {"role": "assistant", "content": "Welcome to Jain Yuva Bot (JYB)! 🙏\n\nI'm an expert on the AI-Yashvi repository. Ask me anything about its content, or general questions about Jainism.\n\n*Note: Currently in simplified mode - advanced features disabled.*"}
         ]
     
     if "question_count" not in st.session_state:
@@ -52,8 +28,8 @@ def initialize_user_session():
     if "last_reset_date" not in st.session_state:
         st.session_state.last_reset_date = datetime.now(IST).date()
     
-    if "qa_chain" not in st.session_state:
-        st.session_state.qa_chain = None
+    if "knowledge_base" not in st.session_state:
+        st.session_state.knowledge_base = None
 
 def check_and_reset_limit():
     """Checks if the day has changed (midnight IST) and resets the limit."""
@@ -68,114 +44,97 @@ def get_remaining_questions():
     """Returns the number of questions remaining."""
     return 5 - st.session_state.question_count
 
-# --- RAG Functions ---
-
-@st.cache_resource()
-def load_repo_and_build_store():
+def load_repo_content():
     """
-    Clones the hard-coded GitHub repo, loads its text files, splits them,
-    creates embeddings using a local model, and returns a FAISS vector store.
+    Simple function to load and display repo content without complex LangChain dependencies.
+    Returns a dictionary with filename -> content mapping.
     """
     try:
-        progress_bar = st.progress(0, text="Initializing...")
-        
-        with tempfile.TemporaryDirectory() as temp_dir:
-            progress_bar.progress(5, text=f"Cloning {REPO_URL}...")
-            Repo.clone_from(REPO_URL, temp_dir)
-            
-            progress_bar.progress(20, text="Loading documents from repo...")
-            loader = DirectoryLoader(
-                temp_dir,
-                glob="**/*[.txt,.md,.py,.rst]",
-                loader_cls=TextLoader,
-                use_multithreading=True,
-                show_progress=False,
-                silent_errors=True
-            )
-            documents = loader.load()
-
-            if not documents:
-                st.error("No compatible documents (.txt, .md, .py, .rst) found in this repository.")
-                return None
-
-            progress_bar.progress(40, text=f"Loaded {len(documents)} documents. Splitting...")
-            
-            # Split documents into chunks
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-            texts = text_splitter.split_documents(documents)
-            
-            progress_bar.progress(60, text=f"Created {len(texts)} text chunks. Creating embeddings...")
-            
-            # Use a free, local model from HuggingFace for embeddings
-            embeddings = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2"
-            )
-            
-            progress_bar.progress(80, text="Building vector store... (This may take a moment)")
-            vector_store = FAISS.from_documents(texts, embeddings)
-            
-            progress_bar.progress(100, text="Knowledge base loaded successfully!")
-            progress_bar.empty()
-            
-            return vector_store
-
+        with st.spinner("Loading repository content..."):
+            with tempfile.TemporaryDirectory() as temp_dir:
+                Repo.clone_from(REPO_URL, temp_dir)
+                
+                # Simple file reading without LangChain
+                repo_content = {}
+                for root, dirs, files in os.walk(temp_dir):
+                    for file in files:
+                        if file.endswith(('.txt', '.md', '.py', '.rst')):
+                            file_path = os.path.join(root, file)
+                            try:
+                                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                    content = f.read()
+                                    # Store relative path as key
+                                    rel_path = os.path.relpath(file_path, temp_dir)
+                                    repo_content[rel_path] = content
+                            except Exception as e:
+                                st.warning(f"Could not read {file_path}: {e}")
+                
+                return repo_content
     except Exception as e:
         st.error(f"Error loading repository: {e}")
         return None
 
-def create_qa_chain(vector_store):
-    """Creates the RAG query chain using local LLM."""
-    try:
-        # Use Ollama with a free local model
-        # Note: Ollama might not work on Streamlit Cloud, so we'll add a fallback
-        try:
-            llm = Ollama(
-                model="llama2",
-                temperature=0.3
-            )
-        except Exception as ollama_error:
-            st.warning(f"Ollama not available: {ollama_error}. Using a simple fallback.")
-            # Create a simple fallback LLM
-            from langchain.llms.fake import FakeListLLM
-            llm = FakeListLLM(responses=["I'm currently unable to process questions due to technical limitations. Please try again later."])
-        
-        # Custom prompt for Jain Bot
-        prompt_template = """
-        You are Jain Yuva Bot (JYB), an AI assistant helping users understand
-        Jainism based on a specific knowledge base and your general training.
-        
-        Your mission is to provide an accurate, respectful, and clear answer.
-        
-        Follow these steps:
-        1. First, look for the answer *only* within the provided CONTEXT.
-        2. If the answer is clearly found in the CONTEXT, base your entire answer on that CONTEXT.
-        3. If the answer is *not* found in the CONTEXT, then answer the question using your general knowledge of Jainism.
-        
-        CONTEXT:
-        {context}
-        
-        QUESTION:
-        {question}
-        
-        ANSWER:
-        """
-        
-        PROMPT = PromptTemplate(
-            template=prompt_template, input_variables=["context", "question"]
-        )
-        
-        # Create the chain
-        qa_chain = RetrievalQA.from_chain_type(
-            llm=llm,
-            chain_type="stuff",
-            retriever=vector_store.as_retriever(search_kwargs={"k": 4}),
-            chain_type_kwargs={"prompt": PROMPT},
-            return_source_documents=True
-        )
-        return qa_chain
-    except Exception as e:
-        st.error(f"Error creating QA chain: {e}")
-        return None
+def search_in_content(query, repo_content):
+    """
+    Simple search function to find relevant content in the repository.
+    Returns relevant snippets and their sources.
+    """
+    if not repo_content:
+        return []
+    
+    query_lower = query.lower()
+    results = []
+    
+    for filename, content in repo_content.items():
+        content_lower = content.lower()
+        if query_lower in content_lower:
+            # Find the context around the query
+            index = content_lower.find(query_lower)
+            start = max(0, index - 200)
+            end = min(len(content), index + len(query) + 200)
+            snippet = content[start:end]
+            
+            results.append({
+                'source': filename,
+                'content': snippet,
+                'relevance': 1  # Simple binary relevance
+            })
+    
+    # Also search for individual words if no direct matches
+    if not results:
+        query_words = query_lower.split()
+        for filename, content in repo_content.items():
+            content_lower = content.lower()
+            word_matches = sum(1 for word in query_words if word in content_lower)
+            if word_matches > 0:
+                # Take first 500 chars as snippet
+                snippet = content[:500] + "..." if len(content) > 500 else content
+                results.append({
+                    'source': filename,
+                    'content': snippet,
+                    'relevance': word_matches / len(query_words)
+                })
+    
+    # Sort by relevance
+    results.sort(key=lambda x: x['relevance'], reverse=True)
+    return results[:3]  # Return top 3 results
+
+def get_ai_response(query, context_snippets):
+    """
+    Simple AI response using available context.
+    In a real implementation, this would use an LLM.
+    """
+    if not context_snippets:
+        return "I couldn't find specific information about this in the repository. Please try asking about general Jain principles or check if your question relates to the content in the AI-Yashvi repository."
+    
+    # Build context string
+    context_str = "\n\n".join([f"From {snippet['source']}:\n{snippet['content']}" for snippet in context_snippets])
+    
+    # Simple response based on found content
+    response = f"Based on the repository content, I found this information:\n\n{context_str}\n\n"
+    response += "This is a simplified response. For more detailed answers, please refer to the actual repository files."
+    
+    return response
 
 # --- Streamlit App UI ---
 
@@ -189,23 +148,18 @@ st.caption(f"✨ Expert on the [`AI-Yashvi` GitHub repository]({REPO_URL}). ✨"
 st.markdown("""
 Ask any questions about its knowledge files!
 
-**🔒 Completely local and free - no API keys required!**
+**🔒 Simplified version - no external dependencies required!**
 """)
 
 # --- Load Knowledge Base Automatically ---
-if "qa_chain" not in st.session_state or st.session_state.qa_chain is None:
-    with st.spinner("Loading knowledge base... This may take a few minutes."):
-        vector_store = load_repo_and_build_store()
-        if vector_store:
-            st.session_state.qa_chain = create_qa_chain(vector_store)
-            if st.session_state.qa_chain:
-                st.success("Knowledge base loaded successfully!")
-            else:
-                st.error("Failed to create QA chain. The app cannot start.")
-                st.stop()
-        else:
-            st.error("Failed to load the knowledge base. The app cannot start.")
-            st.stop()
+if st.session_state.knowledge_base is None:
+    repo_content = load_repo_content()
+    if repo_content:
+        st.session_state.knowledge_base = repo_content
+        st.success(f"✅ Loaded {len(repo_content)} files from repository!")
+    else:
+        st.error("❌ Failed to load the knowledge base. The app cannot start.")
+        st.stop()
 
 # --- Chat UI ---
 chat_container = st.container(border=True)
@@ -234,39 +188,38 @@ if prompt := st.chat_input("Ask your question..."):
                 st.markdown(prompt)
 
         # Show a spinner
-        with st.spinner("JYB is thinking (running locally...)..."):
+        with st.spinner("Searching in repository..."):
             try:
-                bot_response = ""
+                # Search for relevant content
+                context_snippets = search_in_content(prompt, st.session_state.knowledge_base)
                 
-                # --- RAG Logic ---
-                if st.session_state.qa_chain:
-                    response_data = st.session_state.qa_chain.invoke({"query": prompt})
-                    bot_response = response_data["result"]
-                    
-                    # Add bot response to session state
-                    st.session_state.messages.append({"role": "assistant", "content": bot_response})
-                    
-                    # Display bot response in the container
-                    with chat_container:
-                        with st.chat_message("assistant"):
-                            st.markdown(bot_response)
-                            # Optional: Display sources
-                            with st.expander("Show Sources from Repository"):
-                                for doc in response_data["source_documents"]:
-                                    st.info(f"Source: `{doc.metadata['source']}` (snippet)")
-                                    st.code(doc.page_content[:500] + "...")
+                # Generate response
+                bot_response = get_ai_response(prompt, context_snippets)
                 
-                else:
-                    bot_response = "Error: The question-answering chain is not loaded. Please reload the app."
-                    st.session_state.messages.append({"role": "assistant", "content": bot_response})
-                    with chat_container:
-                        with st.chat_message("assistant"):
-                            st.markdown(bot_response)
-
+                # Add bot response to session state
+                st.session_state.messages.append({"role": "assistant", "content": bot_response})
+                
+                # Display bot response in the container
+                with chat_container:
+                    with st.chat_message("assistant"):
+                        st.markdown(bot_response)
+                        
+                        # Show sources if we found any
+                        if context_snippets:
+                            with st.expander("📁 Sources from Repository"):
+                                for snippet in context_snippets:
+                                    st.info(f"**File:** `{snippet['source']}`")
+                                    st.code(snippet['content'])
+                
                 # Increment the question count
                 st.session_state.question_count += 1
                 # Rerun to update the "remaining" count
                 st.rerun()
 
             except Exception as e:
-                st.error(f"An error occurred: {e}")
+                error_msg = f"An error occurred: {str(e)}"
+                st.error(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                with chat_container:
+                    with st.chat_message("assistant"):
+                        st.markdown(error_msg)
