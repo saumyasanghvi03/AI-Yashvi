@@ -1,7 +1,6 @@
 streamlit==1.28.0
 pytz==2023.3
 gitpython==3.1.37
-faiss-cpu==1.7.2
 sentence-transformers==2.2.2
 transformers==4.35.2
 torch==2.1.0
