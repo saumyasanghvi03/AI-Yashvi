@@ -315,6 +315,29 @@ def get_prohibited_response(language, topic):
 **સારાંશ / Summary**
 • Turn to spiritual practices to find strength and inner peace"""
 
+def format_response_to_bullet_points(response):
+    """
+    Converts paragraph responses to strict bullet point format.
+    This is a fallback function to ensure proper formatting.
+    """
+    # If response already has proper bullet points, return as is
+    if '•' in response or '- ' in response:
+        return response
+    
+    # Split into sentences and convert to bullet points
+    sentences = re.split(r'[.!?]+', response)
+    bullet_points = []
+    
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if sentence and len(sentence) > 10:  # Only meaningful sentences
+            # Ensure it starts with a bullet point
+            if not sentence.startswith('•'):
+                sentence = '• ' + sentence
+            bullet_points.append(sentence)
+    
+    return '\n'.join(bullet_points)
+
 def get_ai_response(question, documents, bytez_model):
     """
     Gets relevant context and calls Bytez model for response.
@@ -339,13 +362,15 @@ def get_ai_response(question, documents, bytez_model):
         # STRICTLY POINTWISE system prompt with realistic suggestions
         base_prompt = """You are JainQuest, a helpful AI assistant for Jain philosophy.
 
-CRITICAL FORMAT RULES - YOU MUST FOLLOW:
+CRITICAL FORMAT RULES - YOU MUST FOLLOW EXACTLY:
 1. EVERY section must use ONLY bullet points (•)
 2. NO paragraphs allowed - only short, clear bullet points
 3. Keep each bullet point to 1-2 lines maximum
 4. Be practical and realistic with advice
 5. Include specific, actionable suggestions
 6. Use simple language everyone can understand
+7. NEVER write paragraphs - only bullet points
+8. ALWAYS use • for bullet points, not - or *
 
 REAL-WORLD JAIN TEACHER PRACTICES TO INCORPORATE:
 • Satish Kumar's "Walk gently with eyes on ground" to practice mindfulness
@@ -379,7 +404,9 @@ REQUIRED SECTIONS (in this exact order):
 • [One compassionate, encouraging bullet point]
 
 **સારાંશ / Summary**
-• [One final takeaway bullet point]"""
+• [One final takeaway bullet point]
+
+REMEMBER: ONLY BULLET POINTS, NO PARAGRAPHS!"""
 
         # Add language instruction
         if language == 'gujarati':
@@ -412,7 +439,9 @@ REQUIRED SECTIONS (in this exact order):
         if error:
             return f"Error: {error}", relevant_docs, suggestions
         elif output:
-            return output, relevant_docs, suggestions
+            # Apply formatting to ensure bullet points
+            formatted_output = format_response_to_bullet_points(output)
+            return formatted_output, relevant_docs, suggestions
         else:
             return "No response received from the AI model.", relevant_docs, suggestions
         
@@ -491,6 +520,17 @@ st.markdown("""
     /* High contrast for elders */
     .main {
         color: #000000;
+    }
+    
+    /* Ensure bullet points are properly displayed */
+    .chat-bot ul {
+        margin: 0;
+        padding-left: 1.5rem;
+    }
+    
+    .chat-bot li {
+        margin: 0.5rem 0;
+        font-size: 1.1rem;
     }
 </style>
 """, unsafe_allow_html=True)
