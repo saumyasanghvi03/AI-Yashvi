@@ -8,12 +8,12 @@ from git import Repo
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-# --- CHANGED IMPORTS ---
-# We use ChatGoogleGenerativeAI for the LLM part
-from langchain_google_genai import ChatGoogleGenerativeAI
-# We import HuggingFace for local, free embeddings
+
+# --- COMPLETELY FREE/LOCAL IMPORTS ---
+from langchain_community.llms import Ollama
 from langchain_community.embeddings import HuggingFaceEmbeddings
-# --- END CHANGED IMPORTS ---
+# --- END FREE IMPORTS ---
+
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 
@@ -23,17 +23,6 @@ st.set_page_config(page_title="Jain Yuva Bot (RAG)", page_icon="🙏")
 # --- Hard-coded Repo URL ---
 REPO_URL = "https://github.com/saumyasanghvi03/AI-Yashvi/"
 
-# --- API Key Setup ---
-try:
-    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=GEMINI_API_KEY)
-except KeyError:
-    st.error("GEMINI_API_KEY not found in Streamlit secrets. Please add it.")
-    st.stop()
-except Exception:
-    st.info("API Key not configured. Add your Google AI Studio API key to Streamlit secrets to run the app.")
-    st.stop()
-
 # --- Rate Limiting Logic (Unchanged) ---
 IST = pytz.timezone('Asia/Kolkata')
 
@@ -42,7 +31,7 @@ def initialize_user_session():
     if "messages" not in st.session_state:
         # Add a welcome message to start the chat
         st.session_state.messages = [
-            {"role": "assistant", "content": "Welcome to Jain Yuva Bot (JYB)! 🙏\n\nI'm an expert on the AI-Yashvi repository. Ask me anything about its content, or general questions about Jainism."}
+            {"role": "assistant", "content": "Welcome to Jain Yuva Bot (JYB)! 🙏\n\nI'm an expert on the AI-Yashvi repository. Ask me anything about its content, or general questions about Jainism.\n\n*Running completely locally with free models!*"}
         ]
     
     if "question_count" not in st.session_state:
@@ -69,12 +58,11 @@ def get_remaining_questions():
 
 # --- RAG Functions ---
 
-@st.cache_resource() # Removed show_spinner, we'll use a manual progress bar
+@st.cache_resource()
 def load_repo_and_build_store():
     """
     Clones the hard-coded GitHub repo, loads its text files, splits them,
     creates embeddings using a local model, and returns a FAISS vector store.
-    Shows a progress bar during the process.
     """
     try:
         # Create a progress bar
@@ -89,11 +77,11 @@ def load_repo_and_build_store():
             progress_bar.progress(20, text="Loading documents from repo...")
             loader = DirectoryLoader(
                 temp_dir,
-                glob="**/*[.txt,.md,.py,.rst]",  # Load these file types
+                glob="**/*[.txt,.md,.py,.rst]",
                 loader_cls=TextLoader,
                 use_multithreading=True,
-                show_progress=False, # Hide internal progress bar
-                silent_errors=True # Ignore files it can't read
+                show_progress=False,
+                silent_errors=True
             )
             documents = loader.load()
 
@@ -109,7 +97,7 @@ def load_repo_and_build_store():
             
             progress_bar.progress(60, text=f"Created {len(texts)} text chunks. Creating embeddings...")
             
-            # Use a free, local model from HuggingFace
+            # Use a free, local model from HuggingFace for embeddings
             embeddings = HuggingFaceEmbeddings(
                 model_name="sentence-transformers/all-MiniLM-L6-v2"
             )
@@ -119,7 +107,6 @@ def load_repo_and_build_store():
             vector_store = FAISS.from_documents(texts, embeddings)
             
             progress_bar.progress(100, text="Knowledge base loaded successfully!")
-            # Make the progress bar disappear
             progress_bar.empty()
             
             return vector_store
@@ -129,16 +116,31 @@ def load_repo_and_build_store():
         return None
 
 def create_qa_chain(vector_store):
-    """Creates the RAG query chain."""
+    """Creates the RAG query chain using local LLM."""
     try:
-        # The "brain" for the RAG chain
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-pro-latest", # <-- ****** FIX ****** Was "gemini-pro"
-            google_api_key=GEMINI_API_KEY,
-            temperature=0.3 # Make responses more factual
+        # Use Ollama with a free local model
+        # Make sure you have Ollama installed and the model downloaded
+        # You can install Ollama from: https://ollama.ai/
+        # Then run: ollama pull llama2 (or any other model)
+        
+        llm = Ollama(
+            model="llama2",  # or "mistral", "codellama", "llama2:13b", etc.
+            temperature=0.3
         )
         
-        # We use a custom prompt to combine the Jain Bot persona with RAG instructions
+        # Alternative: If you want to use a different local model, you can use:
+        # from langchain_community.llms import HuggingFacePipeline
+        # from transformers import pipeline
+        #
+        # pipe = pipeline(
+        #     "text-generation",
+        #     model="HuggingFaceH4/zephyr-7b-beta",  # or any other model
+        #     temperature=0.3,
+        #     max_new_tokens=500
+        # )
+        # llm = HuggingFacePipeline(pipeline=pipe)
+        
+        # Custom prompt for Jain Bot
         prompt_template = """
         You are Jain Yuva Bot (JYB), an AI assistant helping users understand
         Jainism based on a specific knowledge base and your general training.
@@ -167,13 +169,14 @@ def create_qa_chain(vector_store):
         qa_chain = RetrievalQA.from_chain_type(
             llm=llm,
             chain_type="stuff",
-            retriever=vector_store.as_retriever(search_kwargs={"k": 4}), # Get top 4 results
+            retriever=vector_store.as_retriever(search_kwargs={"k": 4}),
             chain_type_kwargs={"prompt": PROMPT},
             return_source_documents=True
         )
         return qa_chain
     except Exception as e:
         st.error(f"Error creating QA chain: {e}")
+        st.info("Make sure you have Ollama installed and running. Visit https://ollama.ai/ for installation instructions.")
         return None
 
 # --- Streamlit App UI ---
@@ -187,6 +190,8 @@ st.title("Welcome to Jain Yuva Bot (JYB)! 🙏")
 st.caption(f"✨ Expert on the [`AI-Yashvi` GitHub repository]({REPO_URL}). ✨")
 st.markdown("""
 Ask any questions about its knowledge files!
+
+**🔒 Completely local and free - no API keys required!**
 """)
 
 # --- Load Knowledge Base Automatically ---
@@ -196,19 +201,17 @@ if "qa_chain" not in st.session_state or st.session_state.qa_chain is None:
         st.session_state.qa_chain = create_qa_chain(vector_store)
     else:
         st.error("Failed to load the knowledge base. The app cannot start.")
-        st.stop() # Stop the app if knowledge loading fails
+        st.stop()
 
 # --- Chat UI ---
-# Create a container for the chat history
 chat_container = st.container(border=True)
 
 with chat_container:
-    # Display chat history
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-# Place info and chat input *after* the container
+# Place info and chat input
 remaining = get_remaining_questions()
 st.info(f"**Note:** You can ask up to **{remaining}** more question(s) today. Your daily limit resets at midnight IST.")
 
@@ -227,13 +230,12 @@ if prompt := st.chat_input("Ask your question..."):
                 st.markdown(prompt)
 
         # Show a spinner
-        with st.spinner("JYB is thinking..."):
+        with st.spinner("JYB is thinking (running locally...)..."):
             try:
                 bot_response = ""
                 
                 # --- RAG Logic ---
                 if st.session_state.qa_chain:
-                    # Use invoke for the latest langchain
                     response_data = st.session_state.qa_chain.invoke({"query": prompt})
                     bot_response = response_data["result"]
                     
@@ -259,9 +261,8 @@ if prompt := st.chat_input("Ask your question..."):
 
                 # Increment the question count
                 st.session_state.question_count += 1
-                # Rerun to update the "remaining" count and clear the input box
+                # Rerun to update the "remaining" count
                 st.rerun()
 
             except Exception as e:
                 st.error(f"An error occurred: {e}")
-
