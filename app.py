@@ -7,16 +7,10 @@ import shutil
 from git import Repo
 import requests
 import json
-
-# --- LangChain imports for document processing ---
-try:
-    from langchain_community.document_loaders import DirectoryLoader, TextLoader
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
-    from langchain_community.vectorstores import FAISS
-    from langchain_community.embeddings import HuggingFaceEmbeddings
-except ImportError:
-    st.error("Required LangChain components not found. Please check the requirements.")
-    st.stop()
+import numpy as np
+from sentence_transformers import SentenceTransformer
+import faiss
+import glob
 
 # --- Configuration ---
 st.set_page_config(page_title="Jain Yuva Bot (RAG)", page_icon="🙏")
@@ -25,8 +19,7 @@ st.set_page_config(page_title="Jain Yuva Bot (RAG)", page_icon="🙏")
 REPO_URL = "https://github.com/saumyasanghvi03/AI-Yashvi/"
 
 # --- Bytez API Configuration ---
-# Based on your JavaScript example
-BYTEZ_API_KEY = "90d252f09c55cacf3dcc914b5bb4ac01"  # Using the key from your example
+BYTEZ_API_KEY = "90d252f09c55cacf3dcc914b5bb4ac01"
 BYTEZ_MODEL = "Qwen/Qwen3-4B-Instruct-2507"
 BYTEZ_API_URL = f"https://api.bytez.com/models/{BYTEZ_MODEL}/run"
 
@@ -48,6 +41,9 @@ def initialize_user_session():
     
     if "vector_store" not in st.session_state:
         st.session_state.vector_store = None
+    
+    if "embedding_model" not in st.session_state:
+        st.session_state.embedding_model = None
 
 def check_and_reset_limit():
     """Checks if the day has changed (midnight IST) and resets the limit."""
@@ -62,13 +58,22 @@ def get_remaining_questions():
     """Returns the number of questions remaining."""
     return 5 - st.session_state.question_count
 
-# --- RAG Functions ---
+# --- Custom RAG Functions (No LangChain) ---
 
-@st.cache_resource()
+@st.cache_resource
+def load_embedding_model():
+    """Load the sentence transformer model for embeddings."""
+    try:
+        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        return model
+    except Exception as e:
+        st.error(f"Error loading embedding model: {e}")
+        return None
+
 def load_repo_and_build_store():
     """
-    Clones the hard-coded GitHub repo, loads its text files, splits them,
-    creates embeddings using a local model, and returns a FAISS vector store.
+    Clones the GitHub repo, loads text files, splits them, and builds a FAISS index.
+    Returns a tuple (documents, index, document_metadata)
     """
     try:
         progress_bar = st.progress(0, text="Initializing...")
@@ -78,57 +83,121 @@ def load_repo_and_build_store():
             Repo.clone_from(REPO_URL, temp_dir)
             
             progress_bar.progress(20, text="Loading documents from repo...")
-            loader = DirectoryLoader(
-                temp_dir,
-                glob="**/*[.txt,.md,.py,.rst]",
-                loader_cls=TextLoader,
-                use_multithreading=True,
-                show_progress=False,
-                silent_errors=True
-            )
-            documents = loader.load()
-
+            
+            # Find all text files
+            documents = []
+            document_metadata = []
+            
+            # Define file patterns to search for
+            patterns = ['**/*.txt', '**/*.md', '**/*.py', '**/*.rst']
+            
+            for pattern in patterns:
+                for file_path in glob.glob(os.path.join(temp_dir, pattern), recursive=True):
+                    try:
+                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                            if content.strip():  # Only add non-empty files
+                                # Get relative path for display
+                                rel_path = os.path.relpath(file_path, temp_dir)
+                                documents.append(content)
+                                document_metadata.append({
+                                    'source': rel_path,
+                                    'content': content
+                                })
+                    except Exception as e:
+                        st.warning(f"Could not read {file_path}: {e}")
+            
             if not documents:
-                st.error("No compatible documents (.txt, .md, .py, .rst) found in this repository.")
-                return None
+                st.error("No compatible documents found in this repository.")
+                return None, None, None
 
             progress_bar.progress(40, text=f"Loaded {len(documents)} documents. Splitting...")
             
-            # Split documents into chunks
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-            texts = text_splitter.split_documents(documents)
+            # Split documents into chunks (simple splitting)
+            text_chunks = []
+            chunk_metadata = []
             
-            progress_bar.progress(60, text=f"Created {len(texts)} text chunks. Creating embeddings...")
+            for doc_content, meta in zip(documents, document_metadata):
+                # Simple chunking by character count
+                chunk_size = 1000
+                chunk_overlap = 200
+                
+                for i in range(0, len(doc_content), chunk_size - chunk_overlap):
+                    chunk = doc_content[i:i + chunk_size]
+                    if len(chunk.strip()) > 50:  # Only add substantial chunks
+                        text_chunks.append(chunk)
+                        chunk_metadata.append({
+                            'source': meta['source'],
+                            'content': chunk,
+                            'chunk_id': len(text_chunks)
+                        })
             
-            # Use a free, local model from HuggingFace for embeddings
-            embeddings = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2"
-            )
+            progress_bar.progress(60, text=f"Created {len(text_chunks)} text chunks. Creating embeddings...")
             
-            progress_bar.progress(80, text="Building vector store... (This may take a moment)")
-            vector_store = FAISS.from_documents(texts, embeddings)
+            # Load embedding model
+            embedding_model = load_embedding_model()
+            if not embedding_model:
+                return None, None, None
+            
+            # Create embeddings
+            embeddings = embedding_model.encode(text_chunks)
+            
+            progress_bar.progress(80, text="Building vector store...")
+            
+            # Create FAISS index
+            dimension = embeddings.shape[1]
+            index = faiss.IndexFlatIP(dimension)  # Using Inner Product (cosine similarity)
+            
+            # Normalize embeddings for cosine similarity
+            faiss.normalize_L2(embeddings)
+            index.add(embeddings)
             
             progress_bar.progress(100, text="Knowledge base loaded successfully!")
             progress_bar.empty()
             
-            return vector_store
+            return index, text_chunks, chunk_metadata
 
     except Exception as e:
         st.error(f"Error loading repository: {e}")
-        return None
+        return None, None, None
+
+def search_similar_documents(query, index, text_chunks, chunk_metadata, k=4):
+    """Search for similar documents using the FAISS index."""
+    try:
+        embedding_model = st.session_state.embedding_model
+        if not embedding_model:
+            return []
+        
+        # Encode query
+        query_embedding = embedding_model.encode([query])
+        
+        # Normalize for cosine similarity
+        faiss.normalize_L2(query_embedding)
+        
+        # Search
+        scores, indices = index.search(query_embedding, k)
+        
+        results = []
+        for score, idx in zip(scores[0], indices[0]):
+            if idx < len(text_chunks):
+                results.append({
+                    'content': text_chunks[idx],
+                    'metadata': chunk_metadata[idx],
+                    'score': float(score)
+                })
+        
+        return results
+        
+    except Exception as e:
+        st.error(f"Error searching documents: {e}")
+        return []
 
 def call_bytez_api(messages):
     """
     Calls the Bytez API based on the JavaScript SDK example.
-    
-    Args:
-        messages: List of message objects with role and content
-        
-    Returns:
-        tuple: (error, output)
     """
     try:
-        # Prepare the request payload based on the JavaScript example
+        # Prepare the request payload
         payload = {
             "messages": messages
         }
@@ -143,31 +212,30 @@ def call_bytez_api(messages):
             BYTEZ_API_URL, 
             json=payload, 
             headers=headers, 
-            timeout=60  # Increased timeout for model inference
+            timeout=60
         )
         
         if response.status_code == 200:
             result = response.json()
-            # Based on the JavaScript example, we expect { error, output }
             error = result.get("error")
             output = result.get("output")
             return error, output
         else:
-            return f"HTTP Error: {response.status_code}", None
+            return f"HTTP Error: {response.status_code} - {response.text}", None
             
     except Exception as e:
         return f"Error calling Bytez API: {str(e)}", None
 
-def get_rag_response(question, vector_store):
+def get_rag_response(question, index, text_chunks, chunk_metadata):
     """
-    Gets relevant context from vector store and calls Bytez API for response.
+    Gets relevant context and calls Bytez API for response.
     """
     try:
-        # Get relevant documents from vector store
-        relevant_docs = vector_store.similarity_search(question, k=4)
+        # Search for similar documents
+        similar_docs = search_similar_documents(question, index, text_chunks, chunk_metadata, k=4)
         
         # Combine context from relevant documents
-        context = "\n\n".join([doc.page_content for doc in relevant_docs])
+        context = "\n\n".join([doc['content'] for doc in similar_docs])
         
         # Prepare the system prompt
         system_prompt = """You are Jain Yuva Bot (JYB), an AI assistant helping users understand
@@ -201,7 +269,7 @@ CONTEXT:
         if error:
             return f"Error: {error}", []
         else:
-            return output, relevant_docs
+            return output, similar_docs
         
     except Exception as e:
         return f"Error in RAG pipeline: {str(e)}", []
@@ -224,10 +292,21 @@ Ask any questions about its knowledge files!
 # --- Load Knowledge Base Automatically ---
 if st.session_state.vector_store is None:
     with st.spinner("Loading knowledge base... This may take a few minutes."):
-        vector_store = load_repo_and_build_store()
-        if vector_store:
-            st.session_state.vector_store = vector_store
-            st.success("Knowledge base loaded successfully!")
+        # Load embedding model first
+        st.session_state.embedding_model = load_embedding_model()
+        if not st.session_state.embedding_model:
+            st.error("Failed to load embedding model. The app cannot start.")
+            st.stop()
+        
+        # Load repository and build vector store
+        index, text_chunks, chunk_metadata = load_repo_and_build_store()
+        if index is not None:
+            st.session_state.vector_store = {
+                'index': index,
+                'text_chunks': text_chunks,
+                'chunk_metadata': chunk_metadata
+            }
+            st.success(f"✅ Knowledge base loaded successfully! ({len(text_chunks)} chunks)")
         else:
             st.error("Failed to load the knowledge base. The app cannot start.")
             st.stop()
@@ -262,7 +341,13 @@ if prompt := st.chat_input("Ask your question..."):
         with st.spinner("JYB is thinking..."):
             try:
                 # Get RAG response using Bytez
-                bot_response, source_docs = get_rag_response(prompt, st.session_state.vector_store)
+                vector_data = st.session_state.vector_store
+                bot_response, source_docs = get_rag_response(
+                    prompt, 
+                    vector_data['index'], 
+                    vector_data['text_chunks'], 
+                    vector_data['chunk_metadata']
+                )
                 
                 # Add bot response to session state
                 st.session_state.messages.append({"role": "assistant", "content": bot_response})
@@ -274,10 +359,10 @@ if prompt := st.chat_input("Ask your question..."):
                         
                         # Display sources if available
                         if source_docs:
-                            with st.expander("Show Sources from Repository"):
+                            with st.expander("📁 Sources from Repository"):
                                 for doc in source_docs:
-                                    st.info(f"Source: `{doc.metadata['source']}` (snippet)")
-                                    st.code(doc.page_content[:500] + "...")
+                                    st.info(f"**File:** `{doc['metadata']['source']}` (Relevance: {doc['score']:.3f})")
+                                    st.code(doc['content'][:500] + "..." if len(doc['content']) > 500 else doc['content'])
                 
                 # Increment the question count
                 st.session_state.question_count += 1
