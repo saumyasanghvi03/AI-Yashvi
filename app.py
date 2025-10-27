@@ -8,7 +8,19 @@ from git import Repo
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
+# Safe import approach at the top of your file
+try:
+    from langchain_core.prompts import PromptTemplate
+except ImportError:
+    try:
+        from langchain.prompts import PromptTemplate
+    except ImportError:
+        from langchain import PromptTemplate
 
+try:
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+except ImportError:
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
 # --- FREE/LOCAL IMPORTS ---
 from langchain_community.llms import Ollama
 from langchain_community.embeddings import HuggingFaceEmbeddings
