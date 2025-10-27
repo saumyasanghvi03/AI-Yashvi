@@ -7,14 +7,11 @@ import shutil
 from git import Repo
 import requests
 import json
-import numpy as np
-from sentence_transformers import SentenceTransformer
 import glob
-from sklearn.metrics.pairwise import cosine_similarity
 import re
 
 # --- Configuration ---
-st.set_page_config(page_title="Jain Yuva Bot (RAG)", page_icon="🙏")
+st.set_page_config(page_title="Jain Yuva Bot", page_icon="🙏")
 
 # --- Hard-coded Repo URL ---
 REPO_URL = "https://github.com/saumyasanghvi03/AI-Yashvi/"
@@ -42,9 +39,6 @@ def initialize_user_session():
     
     if "knowledge_base" not in st.session_state:
         st.session_state.knowledge_base = None
-    
-    if "embedding_model" not in st.session_state:
-        st.session_state.embedding_model = None
 
 def check_and_reset_limit():
     """Checks if the day has changed (midnight IST) and resets the limit."""
@@ -58,18 +52,6 @@ def check_and_reset_limit():
 def get_remaining_questions():
     """Returns the number of questions remaining."""
     return 5 - st.session_state.question_count
-
-# --- Custom RAG Functions (No FAISS) ---
-
-@st.cache_resource
-def load_embedding_model():
-    """Load the sentence transformer model for embeddings."""
-    try:
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        return model
-    except Exception as e:
-        st.error(f"Error loading embedding model: {e}")
-        return None
 
 def load_repo_content():
     """
@@ -115,7 +97,7 @@ def load_repo_content():
                 st.error("No compatible documents found in this repository.")
                 return None
 
-            progress_bar.progress(40, text=f"Loaded {len(documents)} documents. Splitting...")
+            progress_bar.progress(40, text=f"Loaded {len(documents)} documents. Processing...")
             
             # Split documents into chunks
             all_chunks = []
@@ -141,57 +123,43 @@ def load_repo_content():
                 
                 doc['chunks'] = chunks
 
-            progress_bar.progress(60, text=f"Created {len(all_chunks)} text chunks. Creating embeddings...")
-            
-            # Load embedding model
-            embedding_model = load_embedding_model()
-            if not embedding_model:
-                return None
-            
-            # Create embeddings for all chunks
-            embeddings = embedding_model.encode(all_chunks)
-            
             progress_bar.progress(100, text="Knowledge base loaded successfully!")
             progress_bar.empty()
             
             return {
                 'documents': documents,
                 'all_chunks': all_chunks,
-                'chunk_metadata': chunk_metadata,
-                'embeddings': embeddings
+                'chunk_metadata': chunk_metadata
             }
 
     except Exception as e:
         st.error(f"Error loading repository: {e}")
         return None
 
-def search_similar_documents(query, knowledge_base, k=4):
-    """Search for similar documents using cosine similarity."""
+def search_keyword_documents(query, knowledge_base, k=4):
+    """Search for documents using keyword matching."""
     try:
-        embedding_model = st.session_state.embedding_model
-        if not embedding_model:
-            return []
-        
-        # Encode query
-        query_embedding = embedding_model.encode([query])
-        embeddings = knowledge_base['embeddings']
-        
-        # Calculate cosine similarity
-        similarities = cosine_similarity(query_embedding, embeddings)[0]
-        
-        # Get top k results
-        top_indices = np.argsort(similarities)[-k:][::-1]
+        query_lower = query.lower()
+        query_words = set(re.findall(r'\w+', query_lower))
         
         results = []
-        for idx in top_indices:
-            if similarities[idx] > 0.1:  # Minimum similarity threshold
+        
+        for idx, chunk in enumerate(knowledge_base['all_chunks']):
+            chunk_lower = chunk.lower()
+            
+            # Calculate simple keyword match score
+            matches = sum(1 for word in query_words if word in chunk_lower)
+            if matches > 0:
+                score = matches / len(query_words) if query_words else 0
                 results.append({
-                    'content': knowledge_base['all_chunks'][idx],
+                    'content': chunk,
                     'metadata': knowledge_base['chunk_metadata'][idx],
-                    'score': float(similarities[idx])
+                    'score': score
                 })
         
-        return results
+        # Sort by score and return top k
+        results.sort(key=lambda x: x['score'], reverse=True)
+        return results[:k]
         
     except Exception as e:
         st.error(f"Error searching documents: {e}")
@@ -236,8 +204,8 @@ def get_rag_response(question, knowledge_base):
     Gets relevant context and calls Bytez API for response.
     """
     try:
-        # Search for similar documents
-        similar_docs = search_similar_documents(question, knowledge_base, k=4)
+        # Search for similar documents using keyword matching
+        similar_docs = search_keyword_documents(question, knowledge_base, k=4)
         
         # Combine context from relevant documents
         context = "\n\n".join([doc['content'] for doc in similar_docs])
@@ -299,12 +267,6 @@ Ask any questions about its knowledge files!
 # --- Load Knowledge Base Automatically ---
 if st.session_state.knowledge_base is None:
     with st.spinner("Loading knowledge base... This may take a few minutes."):
-        # Load embedding model first
-        st.session_state.embedding_model = load_embedding_model()
-        if not st.session_state.embedding_model:
-            st.error("Failed to load embedding model. The app cannot start.")
-            st.stop()
-        
         # Load repository content
         knowledge_base = load_repo_content()
         if knowledge_base is not None:
@@ -358,7 +320,7 @@ if prompt := st.chat_input("Ask your question..."):
                         if source_docs:
                             with st.expander("📁 Sources from Repository"):
                                 for doc in source_docs:
-                                    st.info(f"**File:** `{doc['metadata']['source']}` (Similarity: {doc['score']:.3f})")
+                                    st.info(f"**File:** `{doc['metadata']['source']}` (Relevance: {doc['score']:.3f})")
                                     content_preview = doc['content'][:500] + "..." if len(doc['content']) > 500 else doc['content']
                                     st.code(content_preview)
                 
