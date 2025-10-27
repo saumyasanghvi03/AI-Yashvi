@@ -32,7 +32,7 @@ def initialize_user_session():
     """Initializes session state variables if they don't exist."""
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Welcome to Jain Yuva Bot (JYB)! 🙏\n\nI'm an expert on the AI-Yashvi repository. Ask me anything about Jain philosophy, concepts, or the repository content.\n\n*Powered by Bytez AI models*"}
+            {"role": "assistant", "content": "Welcome to Jain Yuva Bot (JYB)! 🙏\n\nI specialize in Jain philosophy and can help you explore core concepts, ethical frameworks, cosmology, spiritual practices, and scriptural wisdom."}
         ]
     
     if "question_count" not in st.session_state:
@@ -69,18 +69,13 @@ def initialize_bytez_model():
         # Try Qwen model first
         try:
             model = sdk.model("Qwen/Qwen3-4B-Instruct-2507")
-            st.success("✅ Connected to Qwen3-4B-Instruct-2507")
             return model
         except Exception as qwen_error:
-            st.warning(f"Qwen model not available: {qwen_error}")
-            
             # Fallback to Gemma model
             try:
                 model = sdk.model("google/gemma-3-4b-it")
-                st.success("✅ Connected to Gemma-3-4b-it (fallback)")
                 return model
             except Exception as gemma_error:
-                st.error(f"Gemma model also not available: {gemma_error}")
                 return None
                 
     except Exception as e:
@@ -93,7 +88,7 @@ def load_repo_content():
     Returns a list of documents with metadata.
     """
     try:
-        with st.spinner("🔄 Cloning repository..."):
+        with st.spinner("🔄 Loading knowledge base..."):
             with tempfile.TemporaryDirectory() as temp_dir:
                 Repo.clone_from(REPO_URL, temp_dir)
                 
@@ -127,7 +122,6 @@ def load_repo_content():
                     st.error("No compatible documents found in this repository.")
                     return None
 
-                st.success(f"✅ Loaded {len(documents)} files from repository")
                 return documents
 
     except Exception as e:
@@ -270,7 +264,7 @@ def get_ai_response(question, documents, bytez_model):
         context = "\n\n".join([doc['content'] for doc in relevant_docs])
         
         # Enhanced system prompt for refined answers
-        base_prompt = """You are Jain Yuva Bot (JYB), an AI assistant with deep expertise in Jainism and the AI-Yashvi repository.
+        base_prompt = """You are Jain Yuva Bot (JYB), an AI assistant with deep expertise in Jainism.
 
 YOUR RESPONSE FORMAT REQUIREMENTS:
 - Use proper Markdown formatting with headers (##, ###)
@@ -362,11 +356,20 @@ check_and_reset_limit()
 
 # --- Header ---
 st.title("Welcome to Jain Yuva Bot (JYB)! 🙏")
-st.caption(f"✨ Expert on the [`AI-Yashvi` GitHub repository]({REPO_URL}). ✨")
 st.markdown("""
-Ask any questions about Jain philosophy, concepts, or the repository content!
+I specialize in Jain philosophy and can help you explore:
 
-**🚀 Powered by Bytez AI Models**
+**📚 Core Knowledge Areas:**
+- **Jain Philosophy**: Six Substances, Nine Truths, Anekantavada
+- **Ethical Framework**: Five Vows, Three Jewels, Spiritual Stages  
+- **Cosmology**: Three Lokas, Jambudweep, Time Cycles
+- **Spiritual Practices**: Meditation, Rituals, Path to Liberation
+- **Scriptural Wisdom**: Agamas, Tattvartha Sutra, Kalpa Sutra
+- **Historical Context**: Tirthankaras, Traditions, Modern Applications
+
+**📄 Supported Repository Formats**: .txt, .md, .py, .rst, .json, .yaml, .yml
+
+Ask me anything about Jain philosophy, concepts, or practices!
 """)
 
 # --- Initialize Bytez Model ---
@@ -381,12 +384,12 @@ if st.session_state.bytez_model is None:
 
 # --- Load Repository Content ---
 if st.session_state.repo_content is None:
-    with st.spinner("📚 Loading repository content..."):
+    with st.spinner("📚 Loading knowledge base..."):
         repo_content = load_repo_content()
         if repo_content is not None:
             st.session_state.repo_content = repo_content
         else:
-            st.error("❌ Failed to load the repository content.")
+            st.error("❌ Failed to load the knowledge base.")
             st.stop()
 
 # --- Chat UI ---
@@ -439,7 +442,7 @@ if prompt := st.chat_input("Ask your question about Jainism..."):
                         
                         # Display sources if available
                         if source_docs:
-                            with st.expander("📁 Sources from Repository"):
+                            with st.expander("📁 Sources from Knowledge Base"):
                                 for doc in source_docs:
                                     st.info(f"**File:** `{doc['source']}` (Relevance: {doc['score']:.2f})")
                                     content_preview = doc['content']
