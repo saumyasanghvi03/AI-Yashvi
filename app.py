@@ -374,7 +374,9 @@ def get_remaining_questions():
         return "∞ (Admin Mode)"
     return DAILY_QUESTION_LIMIT - st.session_state.question_count
 
-def initialize_ai_models():
+# --- UPGRADE: Cached Functions ---
+@st.cache_resource
+def cached_initialize_ai_models():
     """Initialize AI models with fallback hierarchy."""
     models = {}
     
@@ -431,6 +433,55 @@ def initialize_ai_models():
     
     return models
 
+@st.cache_resource
+def cached_load_repo_content():
+    """
+    Clones the GitHub repo and loads text files.
+    Returns a list of documents with metadata.
+    """
+    try:
+        with st.spinner("Loading knowledge base (one-time setup)..."):
+            with tempfile.TemporaryDirectory() as temp_dir:
+                Repo.clone_from(REPO_URL, temp_dir)
+                
+                # Find all text files
+                documents = []
+                
+                # Define file patterns to search for
+                patterns = ['**/*.txt', '**/*.md', '**/*.py', '**/*.rst', '**/*.json', '**/*.yaml', '**/*.yml']
+                
+                for pattern in patterns:
+                    for file_path in glob.glob(os.path.join(temp_dir, pattern), recursive=True):
+                        try:
+                            # Skip hidden files and directories
+                            if os.path.basename(file_path).startswith('.'):
+                                continue
+                                
+                            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                content = f.read()
+                                if content.strip():  # Only add non-empty files
+                                    # Get relative path for display
+                                    rel_path = os.path.relpath(file_path, temp_dir)
+                                    documents.append({
+                                        'source': rel_path,
+                                        'content': content,
+                                        'file_size': len(content)
+                                    })
+                        except Exception:
+                            continue  # Skip files that can't be read
+
+                if not documents:
+                    st.error("No compatible documents found in this repository.")
+                    return None
+                
+                st.success("✓ Knowledge base loaded")
+                return documents
+
+    except Exception as e:
+        st.error(f"Error loading repository: {e}")
+        return None
+# --- END UPGRADE ---
+
 def call_ai_model(models, messages):
     """
     Calls available AI models with fallback hierarchy.
@@ -449,7 +500,7 @@ def call_ai_model(models, messages):
     if not user_question:
         return "No question provided.", "No user question"
     
-    full_prompt = f"{system_prompt}\n\nQuestion: {user_question}\n\nAnswer:"
+    full_prompt = f"{system_prompt}\n\nAnswer:"
     
     # Try Bytez models first
     if 'bytez_qwen' in models:
@@ -500,52 +551,6 @@ def call_ai_model(models, messages):
             return None, error_msg
     
     return None, "All AI models failed"
-
-def load_repo_content():
-    """
-    Clones the GitHub repo and loads text files.
-    Returns a list of documents with metadata.
-    """
-    try:
-        with st.spinner("Loading knowledge base..."):
-            with tempfile.TemporaryDirectory() as temp_dir:
-                Repo.clone_from(REPO_URL, temp_dir)
-                
-                # Find all text files
-                documents = []
-                
-                # Define file patterns to search for
-                patterns = ['**/*.txt', '**/*.md', '**/*.py', '**/*.rst', '**/*.json', '**/*.yaml', '**/*.yml']
-                
-                for pattern in patterns:
-                    for file_path in glob.glob(os.path.join(temp_dir, pattern), recursive=True):
-                        try:
-                            # Skip hidden files and directories
-                            if os.path.basename(file_path).startswith('.'):
-                                continue
-                                
-                            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                                content = f.read()
-                                if content.strip():  # Only add non-empty files
-                                    # Get relative path for display
-                                    rel_path = os.path.relpath(file_path, temp_dir)
-                                    documents.append({
-                                        'source': rel_path,
-                                        'content': content,
-                                        'file_size': len(content)
-                                    })
-                        except Exception:
-                            continue  # Skip files that can't be read
-
-                if not documents:
-                    st.error("No compatible documents found in this repository.")
-                    return None
-
-                return documents
-
-    except Exception as e:
-        st.error(f"Error loading repository: {e}")
-        return None
 
 def search_in_repo(query, documents, max_results=5):
     """Enhanced keyword search in repository documents."""
@@ -843,6 +848,20 @@ def get_ai_response(question, documents, ai_models):
         
         # Combine context from relevant documents
         context = "\n\n".join([doc['content'] for doc in relevant_docs])
+
+        # --- UPGRADE: Conversational Memory ---
+        # Build conversation history
+        history_messages = st.session_state.messages[-6:] # Get last 6 messages (3 pairs)
+        conversation_history = "\n\nPREVIOUS CONVERSATION CONTEXT:\n"
+        if len(history_messages) > 1: # More than just the initial welcome
+            for msg in history_messages:
+                if msg["role"] == "user":
+                    conversation_history += f"User: {msg['content']}\n"
+                elif msg["role"] == "assistant":
+                    conversation_history += f"Assistant: {msg['content']}\n"
+        else:
+            conversation_history = "\n\nThis is the first question.\n"
+        # --- END UPGRADE ---
         
         # SIMPLIFIED system prompt without complex practices
         base_prompt = """You are JainQuest, a helpful AI assistant for Jain philosophy.
@@ -856,6 +875,7 @@ CRITICAL FORMAT RULES - YOU MUST FOLLOW EXACTLY:
 6. Use simple language everyone can understand
 7. NEVER write paragraphs - only bullet points
 8. ALWAYS use • for bullet points, not - or *
+9. Use the PREVIOUS CONVERSATION CONTEXT to understand follow-up questions (e.g., "what about it?").
 
 REQUIRED SECTIONS (in this exact order):
 
@@ -898,7 +918,16 @@ REMEMBER: ONLY BULLET POINTS, NO PARAGRAPHS!"""
         # Add Jain knowledge sources context
         jain_sources_context = get_jain_knowledge_context()
 
-        system_prompt = base_prompt + language_instruction + context_part + jain_sources_context + f"\n\nQUESTION: {question}\n\nProvide your STRICTLY POINTWISE answer:"
+        # --- UPGRADE: Modified System Prompt ---
+        system_prompt = (
+            base_prompt + 
+            language_instruction + 
+            conversation_history +  # Add memory
+            context_part + 
+            jain_sources_context + 
+            f"\n\nNEW QUESTION: {question}"
+        )
+        # --- END UPGRADE ---
 
         # Prepare messages for the model
         messages = [
@@ -908,7 +937,7 @@ REMEMBER: ONLY BULLET POINTS, NO PARAGRAPHS!"""
             },
             {
                 "role": "user", 
-                "content": question
+                "content": question # The user's latest question
             }
         ]
         
@@ -1336,7 +1365,16 @@ def render_settings_page():
     feedback = st.text_area("Share your feedback or suggestions:", height=100)
     if st.button("Submit Feedback"):
         if feedback.strip():
-            st.success("Thank you for your feedback! 🙏")
+            # --- UPGRADE: Save feedback to file ---
+            try:
+                with open("feedback.txt", "a", encoding="utf-8") as f:
+                    f.write(f"--- {datetime.now(IST)} ---\n")
+                    f.write(f"User: {st.session_state.user_name}\n")
+                    f.write(f"Feedback: {feedback}\n\n")
+                st.success("Thank you for your feedback! 🙏")
+            except Exception as e:
+                st.error(f"Could not save feedback: {e}")
+            # --- END UPGRADE ---
         else:
             st.warning("Please enter your feedback before submitting.")
 
@@ -1382,6 +1420,23 @@ def main():
     # Initialize session state
     initialize_user_session()
     check_and_reset_limit()
+
+    # --- UPGRADE: Load cached models and data at the START ---
+    # This runs ONCE per session and is much faster on re-runs.
+    try:
+        if st.session_state.ai_models is None:
+            st.session_state.ai_models = cached_initialize_ai_models()
+    except Exception as e:
+            st.error(f"Failed to load AI models: {e}")
+            st.session_state.ai_models = {} # Set to empty dict to prevent re-load
+
+    try:
+        if st.session_state.repo_content is None:
+            st.session_state.repo_content = cached_load_repo_content()
+    except Exception as e:
+            st.error(f"Failed to load knowledge base: {e}")
+            st.session_state.repo_content = [] # Set to empty list to prevent re-load
+    # --- END UPGRADE ---
     
     # Custom CSS for enhanced UI
     st.markdown("""
@@ -1478,23 +1533,8 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Initialize AI Model if not already done
-    if st.session_state.ai_models is None:
-        with st.spinner("🔄 Loading AI assistant..."):
-            ai_models = initialize_ai_models()
-            if ai_models:
-                st.session_state.ai_models = ai_models
-            else:
-                st.warning("AI models not available. Using quick questions database only.")
-    
-    # Load Knowledge Base if not already done
-    if st.session_state.repo_content is None:
-        with st.spinner("📚 Loading knowledge base..."):
-            repo_content = load_repo_content()
-            if repo_content is not None:
-                st.session_state.repo_content = repo_content
-            else:
-                st.error("Failed to load knowledge base. Some features may be limited.")
+    # --- UPGRADE: Removed the old loading blocks from here ---
 
 if __name__ == "__main__":
     main()
+
