@@ -37,8 +37,8 @@ def initialize_user_session():
     if "last_reset_date" not in st.session_state:
         st.session_state.last_reset_date = datetime.now(IST).date()
     
-    if "knowledge_base" not in st.session_state:
-        st.session_state.knowledge_base = None
+    if "repo_content" not in st.session_state:
+        st.session_state.repo_content = None
 
 def check_and_reset_limit():
     """Checks if the day has changed (midnight IST) and resets the limit."""
@@ -59,107 +59,87 @@ def load_repo_content():
     Returns a list of documents with metadata.
     """
     try:
-        progress_bar = st.progress(0, text="Initializing...")
-        
-        with tempfile.TemporaryDirectory() as temp_dir:
-            progress_bar.progress(5, text=f"Cloning {REPO_URL}...")
-            Repo.clone_from(REPO_URL, temp_dir)
-            
-            progress_bar.progress(20, text="Loading documents from repo...")
-            
-            # Find all text files
-            documents = []
-            
-            # Define file patterns to search for
-            patterns = ['**/*.txt', '**/*.md', '**/*.py', '**/*.rst', '**/*.json']
-            
-            for pattern in patterns:
-                for file_path in glob.glob(os.path.join(temp_dir, pattern), recursive=True):
-                    try:
-                        # Skip hidden files and directories
-                        if os.path.basename(file_path).startswith('.'):
-                            continue
-                            
-                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                            content = f.read()
-                            if content.strip():  # Only add non-empty files
-                                # Get relative path for display
-                                rel_path = os.path.relpath(file_path, temp_dir)
-                                documents.append({
-                                    'source': rel_path,
-                                    'content': content,
-                                    'chunks': []
-                                })
-                    except Exception as e:
-                        continue  # Skip files that can't be read
-
-            if not documents:
-                st.error("No compatible documents found in this repository.")
-                return None
-
-            progress_bar.progress(40, text=f"Loaded {len(documents)} documents. Processing...")
-            
-            # Split documents into chunks
-            all_chunks = []
-            chunk_metadata = []
-            
-            for doc in documents:
-                content = doc['content']
-                # Simple chunking by character count
-                chunk_size = 1000
-                chunk_overlap = 200
+        with st.spinner("🔄 Cloning repository..."):
+            with tempfile.TemporaryDirectory() as temp_dir:
+                Repo.clone_from(REPO_URL, temp_dir)
                 
-                chunks = []
-                for i in range(0, len(content), chunk_size - chunk_overlap):
-                    chunk = content[i:i + chunk_size]
-                    if len(chunk.strip()) > 50:  # Only add substantial chunks
-                        chunks.append(chunk)
-                        all_chunks.append(chunk)
-                        chunk_metadata.append({
-                            'source': doc['source'],
-                            'content': chunk,
-                            'chunk_id': len(all_chunks)
-                        })
+                # Find all text files
+                documents = []
                 
-                doc['chunks'] = chunks
+                # Define file patterns to search for
+                patterns = ['**/*.txt', '**/*.md', '**/*.py', '**/*.rst', '**/*.json']
+                
+                for pattern in patterns:
+                    for file_path in glob.glob(os.path.join(temp_dir, pattern), recursive=True):
+                        try:
+                            # Skip hidden files and directories
+                            if os.path.basename(file_path).startswith('.'):
+                                continue
+                                
+                            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                content = f.read()
+                                if content.strip():  # Only add non-empty files
+                                    # Get relative path for display
+                                    rel_path = os.path.relpath(file_path, temp_dir)
+                                    documents.append({
+                                        'source': rel_path,
+                                        'content': content
+                                    })
+                        except Exception:
+                            continue  # Skip files that can't be read
 
-            progress_bar.progress(100, text="Knowledge base loaded successfully!")
-            progress_bar.empty()
-            
-            return {
-                'documents': documents,
-                'all_chunks': all_chunks,
-                'chunk_metadata': chunk_metadata
-            }
+                if not documents:
+                    st.error("No compatible documents found in this repository.")
+                    return None
+
+                return documents
 
     except Exception as e:
         st.error(f"Error loading repository: {e}")
         return None
 
-def search_keyword_documents(query, knowledge_base, k=4):
-    """Search for documents using keyword matching."""
+def search_in_repo(query, documents, max_results=3):
+    """Simple keyword search in repository documents."""
     try:
         query_lower = query.lower()
-        query_words = set(re.findall(r'\w+', query_lower))
-        
         results = []
         
-        for idx, chunk in enumerate(knowledge_base['all_chunks']):
-            chunk_lower = chunk.lower()
+        for doc in documents:
+            content_lower = doc['content'].lower()
             
-            # Calculate simple keyword match score
-            matches = sum(1 for word in query_words if word in chunk_lower)
-            if matches > 0:
-                score = matches / len(query_words) if query_words else 0
+            # Check for exact phrase match
+            if query_lower in content_lower:
+                # Find the context around the match
+                index = content_lower.find(query_lower)
+                start = max(0, index - 200)
+                end = min(len(doc['content']), index + len(query) + 200)
+                snippet = doc['content'][start:end]
+                
                 results.append({
-                    'content': chunk,
-                    'metadata': knowledge_base['chunk_metadata'][idx],
-                    'score': score
+                    'source': doc['source'],
+                    'content': snippet,
+                    'score': 1.0  # Exact match gets highest score
                 })
+            
+            # Also check for individual word matches
+            else:
+                query_words = set(re.findall(r'\w+', query_lower))
+                content_words = set(re.findall(r'\w+', content_lower))
+                common_words = query_words.intersection(content_words)
+                
+                if common_words:
+                    score = len(common_words) / len(query_words)
+                    # Take first 500 chars as snippet
+                    snippet = doc['content'][:500] + "..." if len(doc['content']) > 500 else doc['content']
+                    results.append({
+                        'source': doc['source'],
+                        'content': snippet,
+                        'score': score
+                    })
         
-        # Sort by score and return top k
+        # Sort by score and return top results
         results.sort(key=lambda x: x['score'], reverse=True)
-        return results[:k]
+        return results[:max_results]
         
     except Exception as e:
         st.error(f"Error searching documents: {e}")
@@ -199,36 +179,37 @@ def call_bytez_api(messages):
     except Exception as e:
         return f"Error calling Bytez API: {str(e)}", None
 
-def get_rag_response(question, knowledge_base):
+def get_ai_response(question, documents):
     """
     Gets relevant context and calls Bytez API for response.
     """
     try:
-        # Search for similar documents using keyword matching
-        similar_docs = search_keyword_documents(question, knowledge_base, k=4)
+        # Search for relevant documents
+        relevant_docs = search_in_repo(question, documents, max_results=3)
         
         # Combine context from relevant documents
-        context = "\n\n".join([doc['content'] for doc in similar_docs])
+        context = "\n\n".join([doc['content'] for doc in relevant_docs])
         
         # Prepare the system prompt
-        system_prompt = """You are Jain Yuva Bot (JYB), an AI assistant helping users understand
-Jainism based on a specific knowledge base and your general training.
+        if context.strip():
+            system_prompt = f"""You are Jain Yuva Bot (JYB), an AI assistant helping users understand Jainism.
 
-Your mission is to provide an accurate, respectful, and clear answer.
+First, check if the answer is in this CONTEXT from our knowledge base:
+{context}
 
-Follow these steps:
-1. First, look for the answer *only* within the provided CONTEXT.
-2. If the answer is clearly found in the CONTEXT, base your entire answer on that CONTEXT.
-3. If the answer is *not* found in the CONTEXT, then answer the question using your general knowledge of Jainism.
+If the answer is in the CONTEXT, use it. If not, use your general knowledge about Jainism.
 
-CONTEXT:
-{context}"""
+Provide a helpful, accurate answer:"""
+        else:
+            system_prompt = """You are Jain Yuva Bot (JYB), an AI assistant helping users understand Jainism.
+
+Provide a helpful, accurate answer based on your knowledge:"""
 
         # Prepare messages for the API
         messages = [
             {
                 "role": "system",
-                "content": system_prompt.format(context=context)
+                "content": system_prompt
             },
             {
                 "role": "user", 
@@ -240,14 +221,14 @@ CONTEXT:
         error, output = call_bytez_api(messages)
         
         if error:
-            return f"Error: {error}", similar_docs
+            return f"Error: {error}", relevant_docs
         elif output:
-            return output, similar_docs
+            return output, relevant_docs
         else:
-            return "No response received from the AI model.", similar_docs
+            return "No response received from the AI model.", relevant_docs
         
     except Exception as e:
-        return f"Error in RAG pipeline: {str(e)}", []
+        return f"Error processing your question: {str(e)}", []
 
 # --- Streamlit App UI ---
 
@@ -264,16 +245,15 @@ Ask any questions about its knowledge files!
 **🚀 Powered by Bytez - {BYTEZ_MODEL}**
 """)
 
-# --- Load Knowledge Base Automatically ---
-if st.session_state.knowledge_base is None:
-    with st.spinner("Loading knowledge base... This may take a few minutes."):
-        # Load repository content
-        knowledge_base = load_repo_content()
-        if knowledge_base is not None:
-            st.session_state.knowledge_base = knowledge_base
-            st.success(f"✅ Knowledge base loaded successfully! ({len(knowledge_base['all_chunks'])} chunks from repository)")
+# --- Load Repository Content ---
+if st.session_state.repo_content is None:
+    with st.spinner("📚 Loading repository content..."):
+        repo_content = load_repo_content()
+        if repo_content is not None:
+            st.session_state.repo_content = repo_content
+            st.success(f"✅ Repository loaded successfully! ({len(repo_content)} files)")
         else:
-            st.error("Failed to load the knowledge base. The app cannot start.")
+            st.error("❌ Failed to load the repository content.")
             st.stop()
 
 # --- Chat UI ---
@@ -303,10 +283,10 @@ if prompt := st.chat_input("Ask your question..."):
                 st.markdown(prompt)
 
         # Show a spinner
-        with st.spinner("JYB is thinking..."):
+        with st.spinner("🤔 JYB is thinking..."):
             try:
-                # Get RAG response using Bytez
-                bot_response, source_docs = get_rag_response(prompt, st.session_state.knowledge_base)
+                # Get AI response using Bytez
+                bot_response, source_docs = get_ai_response(prompt, st.session_state.repo_content)
                 
                 # Add bot response to session state
                 st.session_state.messages.append({"role": "assistant", "content": bot_response})
@@ -320,8 +300,10 @@ if prompt := st.chat_input("Ask your question..."):
                         if source_docs:
                             with st.expander("📁 Sources from Repository"):
                                 for doc in source_docs:
-                                    st.info(f"**File:** `{doc['metadata']['source']}` (Relevance: {doc['score']:.3f})")
-                                    content_preview = doc['content'][:500] + "..." if len(doc['content']) > 500 else doc['content']
+                                    st.info(f"**File:** `{doc['source']}`")
+                                    content_preview = doc['content']
+                                    if len(content_preview) > 500:
+                                        content_preview = content_preview[:500] + "..."
                                     st.code(content_preview)
                 
                 # Increment the question count
