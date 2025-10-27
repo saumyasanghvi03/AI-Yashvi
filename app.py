@@ -80,94 +80,6 @@ Digital Jain Pathshala - Key Spiritual Topics:
   - Aparigraha (Non-possessiveness)
 """
 
-# --- Enhanced Quick Learning Topics ---
-QUICK_LEARNING_TOPICS = {
-    "basic_principles": {
-        "icon": "🔰",
-        "title": "Basic Principles",
-        "question": "What are the basic principles of Jainism?",
-        "description": "Learn the core foundations of Jain philosophy",
-        "color": "#4CAF50"
-    },
-    "three_jewels": {
-        "icon": "💎",
-        "title": "Three Jewels",
-        "question": "Explain the Three Jewels of Jainism",
-        "description": "Right faith, knowledge, and conduct",
-        "color": "#2196F3"
-    },
-    "ahimsa": {
-        "icon": "🕊️",
-        "title": "Ahimsa",
-        "question": "What is Ahimsa and how to practice it daily?",
-        "description": "Non-violence in thought, word, and action",
-        "color": "#4CAF50"
-    },
-    "meditation": {
-        "icon": "🧘",
-        "title": "Meditation",
-        "question": "Simple meditation techniques in Jainism",
-        "description": "Preksha, Samayik, and Kayotsarg",
-        "color": "#9C27B0"
-    },
-    "navkar_mantra": {
-        "icon": "📿",
-        "title": "Navkar Mantra",
-        "question": "What is the significance of Navkar Mantra?",
-        "description": "The most important Jain mantra",
-        "color": "#FF9800"
-    },
-    "ayambil": {
-        "icon": "🎯",
-        "title": "Ayambil",
-        "question": "What is Ayambil and its spiritual benefits?",
-        "description": "Spiritual fasting practice",
-        "color": "#F44336"
-    },
-    "tattvartha_sutra": {
-        "icon": "📚",
-        "title": "Tattvartha Sutra",
-        "question": "Explain the key teachings of Tattvartha Sutra",
-        "description": "Fundamental Jain scripture",
-        "color": "#607D8B"
-    },
-    "anekantavada": {
-        "icon": "🌿",
-        "title": "Anekantavada",
-        "question": "What is Anekantavada and its importance?",
-        "description": "Doctrine of multiple viewpoints",
-        "color": "#4CAF50"
-    },
-    "karma": {
-        "icon": "🔄",
-        "title": "Karma Theory",
-        "question": "Explain the Jain concept of Karma",
-        "description": "Understanding karmic bondage and liberation",
-        "color": "#FF5722"
-    },
-    "vegetarianism": {
-        "icon": "🌱",
-        "title": "Vegetarianism",
-        "question": "Why is vegetarianism important in Jainism?",
-        "description": "Dietary principles and spiritual benefits",
-        "color": "#4CAF50"
-    },
-    "navpad_oli": {
-        "icon": "🕉️",
-        "title": "Navpad Oli",
-        "question": "What is Navpad Oli and how to observe it?",
-        "description": "Nine-day spiritual festival",
-        "color": "#9C27B0"
-    },
-    "daily_practices": {
-        "icon": "🌅",
-        "title": "Daily Practices",
-        "question": "What are essential daily spiritual practices in Jainism?",
-        "description": "Routine for spiritual growth",
-        "color": "#2196F3"
-    }
-}
-
 def initialize_user_session():
     """Initializes session state variables if they don't exist."""
     if "messages" not in st.session_state:
@@ -195,9 +107,6 @@ def initialize_user_session():
     
     if "user_name" not in st.session_state:
         st.session_state.user_name = ""
-    
-    if "show_quick_topics" not in st.session_state:
-        st.session_state.show_quick_topics = True
 
 def check_and_reset_limit():
     """Checks if the day has changed (midnight IST) and resets the limit."""
@@ -528,7 +437,7 @@ def get_ai_response(question, documents, bytez_model):
         # Combine context from relevant documents
         context = "\n\n".join([doc['content'] for doc in relevant_docs])
         
-        # STRICTLY POINTWISE system prompt with realistic suggestions
+        # SIMPLIFIED system prompt without complex practices
         base_prompt = """You are JainQuest, a helpful AI assistant for Jain philosophy.
 
 CRITICAL FORMAT RULES - YOU MUST FOLLOW EXACTLY:
@@ -540,14 +449,6 @@ CRITICAL FORMAT RULES - YOU MUST FOLLOW EXACTLY:
 6. Use simple language everyone can understand
 7. NEVER write paragraphs - only bullet points
 8. ALWAYS use • for bullet points, not - or *
-
-REAL-WORLD JAIN TEACHER PRACTICES TO INCORPORATE:
-• Satish Kumar's "Walk gently with eyes on ground" to practice mindfulness
-• Acharya Shree Yogeesh's breathing techniques for stress relief
-• Siddhayatan Tirth's meditation methods for emotional healing
-• Listen to Jain bhajans like "Nemras" on Spotify/YouTube
-• Practice 5-minute Navkar Mantra meditation daily
-• Join online Jain satsangs for community support
 
 REQUIRED SECTIONS (in this exact order):
 
@@ -564,9 +465,8 @@ REQUIRED SECTIONS (in this exact order):
 • [Relevant Jain principle 2]
 
 **વ્યવહારુ સલાહ / Practical Advice**
-• [Include specific Jain teacher techniques when relevant]
-• [Suggest Jain music like "Nemras" for emotional healing]
-• [Recommend meditation apps or online resources]
+• [Suggest simple daily practices]
+• [Recommend basic meditation techniques]
 • [Something easy to do today]
 
 **ભાવનાત્મક સહાય / Emotional Support**
@@ -620,7 +520,7 @@ REMEMBER: ONLY BULLET POINTS, NO PARAGRAPHS!"""
     except Exception as e:
         return f"Error processing your question: {str(e)}", [], []
 
-# --- Enhanced UI Components ---
+# --- Simplified UI Components ---
 def render_sidebar():
     """Renders the enhanced sidebar with navigation and user info."""
     with st.sidebar:
@@ -700,94 +600,10 @@ def render_sidebar():
         • JainWorld
         """)
 
-def render_quick_learning_topics():
-    """Renders the enhanced quick learning topics with modern UI/UX."""
-    
-    # Header with toggle
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.markdown("### 🚀 Quick Learning Topics")
-    with col2:
-        toggle_label = "🔽 Hide Topics" if st.session_state.show_quick_topics else "▶️ Show Topics"
-        if st.button(toggle_label, use_container_width=True):
-            st.session_state.show_quick_topics = not st.session_state.show_quick_topics
-            st.rerun()
-    
-    if not st.session_state.show_quick_topics:
-        return
-    
-    st.markdown("""
-    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                padding: 1.5rem; 
-                border-radius: 15px; 
-                margin: 1rem 0;
-                color: white;
-                text-align: center;'>
-        <h4 style='margin: 0; color: white;'>🌟 Click any topic to start learning instantly!</h4>
-        <p style='margin: 0.5rem 0 0 0; opacity: 0.9;'>Choose from essential Jain spiritual topics</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Category Tabs
-    categories = {
-        "🔰 Fundamentals": ["basic_principles", "three_jewels", "ahimsa", "anekantavada"],
-        "🧘 Practices": ["meditation", "navkar_mantra", "daily_practices", "ayambil"],
-        "📚 Scriptures": ["tattvartha_sutra", "karma"],
-        "🌱 Lifestyle": ["vegetarianism", "navpad_oli"]
-    }
-    
-    # Create tabs
-    tabs = st.tabs(list(categories.keys()))
-    
-    for i, (category_name, topic_keys) in enumerate(categories.items()):
-        with tabs[i]:
-            # Create columns for this category
-            cols = st.columns(2)
-            
-            for j, topic_key in enumerate(topic_keys):
-                if topic_key in QUICK_LEARNING_TOPICS:
-                    topic = QUICK_LEARNING_TOPICS[topic_key]
-                    col_idx = j % 2
-                    
-                    with cols[col_idx]:
-                        # Create a card-like container for each topic
-                        st.markdown(f"""
-                        <div style='
-                            background: {topic["color"]}15;
-                            border: 2px solid {topic["color"]}30;
-                            border-radius: 12px;
-                            padding: 1rem;
-                            margin: 0.5rem 0;
-                            transition: all 0.3s ease;
-                            cursor: pointer;
-                            height: 120px;
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: space-between;
-                        '
-                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px {topic["color"]}25';"
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';"
-                        onclick="this.style.background='{topic["color"]}25';">
-                            <div>
-                                <div style='font-size: 1.5rem; margin-bottom: 0.5rem;'>{topic["icon"]}</div>
-                                <h4 style='margin: 0; color: {topic["color"]}; font-weight: 600;'>{topic["title"]}</h4>
-                                <p style='margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #666; line-height: 1.3;'>{topic["description"]}</p>
-                            </div>
-                            <div style='text-align: right; font-size: 0.8rem; color: {topic["color"]};'>
-                                Click to learn →
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # Add invisible button for functionality
-                        if st.button("", key=f"topic_{topic_key}", help=f"Learn about {topic['title']}"):
-                            st.session_state.messages.append({"role": "user", "content": topic["question"]})
-                            st.rerun()
-
 def render_chat_page():
     """Renders the main chat interface."""
     # Header with quick actions
-    col1, col2, col3 = st.columns([2, 1, 1])
+    col1, col2 = st.columns([3, 1])
     with col1:
         st.markdown("### 💭 Ask Your Spiritual Questions")
     with col2:
@@ -796,15 +612,20 @@ def render_chat_page():
                 {"role": "assistant", "content": "Chat cleared! How can I help you with Jain philosophy today? 🌟"}
             ]
             st.rerun()
-    with col3:
-        if st.button("💫 Random Topic", use_container_width=True):
-            import random
-            random_topic = random.choice(list(QUICK_LEARNING_TOPICS.values()))
-            st.session_state.messages.append({"role": "user", "content": random_topic["question"]})
-            st.rerun()
     
-    # Enhanced Quick Learning Topics
-    render_quick_learning_topics()
+    # Simple guidance section instead of quick topics
+    st.markdown("---")
+    st.markdown("""
+    <div style='background: #E8F5E8; padding: 1.5rem; border-radius: 15px; margin: 1rem 0;'>
+        <h4 style='color: #2E7D32; margin: 0;'>💡 How to Get the Best Answers</h4>
+        <p style='margin: 0.5rem 0 0 0;'>
+        • Ask specific questions about Jain philosophy, principles, or practices<br>
+        • You can type in English or Gujarati<br>
+        • Get clear, pointwise answers based on authentic sources<br>
+        • Focus on spiritual growth and practical guidance
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Chat Container
     st.markdown("---")
@@ -1089,31 +910,6 @@ def main():
         border-radius: 15px;
         margin: 0.5rem 0;
         border-left: 5px solid #7B1FA2;
-    }
-    
-    /* Tab styling */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: pre-wrap;
-        background-color: #F8F9FA;
-        border-radius: 8px 8px 0px 0px;
-        gap: 8px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-    }
-    
-    .stTabs [aria-selected="true"] {
-        background-color: #4CAF50;
-        color: white;
-    }
-    
-    /* Hide the default Streamlit button that appears on topic cards */
-    div[data-testid="stButton"] button {
-        display: none;
     }
     </style>
     """, unsafe_allow_html=True)
