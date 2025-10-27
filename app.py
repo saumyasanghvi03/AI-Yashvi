@@ -11,9 +11,20 @@ import re
 # --- Bytez SDK Import ---
 try:
     from bytez import Bytez
+    BYTEZ_AVAILABLE = True
 except ImportError:
     st.error("Bytez package not installed. Please install it with: pip install bytez")
-    st.stop()
+    BYTEZ_AVAILABLE = False
+
+# --- Hugging Face Fallback Imports ---
+try:
+    from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
+    from transformers import GenerationConfig
+    import torch
+    HF_AVAILABLE = True
+except ImportError:
+    st.warning("Hugging Face transformers not available. Install with: pip install transformers torch accelerate")
+    HF_AVAILABLE = False
 
 # --- Configuration ---
 st.set_page_config(
@@ -337,8 +348,8 @@ def initialize_user_session():
     if "repo_content" not in st.session_state:
         st.session_state.repo_content = None
     
-    if "bytez_model" not in st.session_state:
-        st.session_state.bytez_model = None
+    if "ai_models" not in st.session_state:
+        st.session_state.ai_models = None
     
     if "admin_mode" not in st.session_state:
         st.session_state.admin_mode = False
@@ -363,27 +374,132 @@ def get_remaining_questions():
         return "∞ (Admin Mode)"
     return DAILY_QUESTION_LIMIT - st.session_state.question_count
 
-def initialize_bytez_model():
-    """Initialize Bytez SDK and model with fallback options."""
-    try:
-        # Initialize SDK
-        sdk = Bytez(BYTEZ_API_KEY)
-        
-        # Try Qwen model first
+def initialize_ai_models():
+    """Initialize AI models with fallback hierarchy."""
+    models = {}
+    
+    # Try Bytez models first
+    if BYTEZ_AVAILABLE:
         try:
-            model = sdk.model("Qwen/Qwen3-4B-Instruct-2507")
-            return model
-        except Exception as qwen_error:
-            # Fallback to Gemma model
+            sdk = Bytez(BYTEZ_API_KEY)
+            # Try Qwen model first
             try:
-                model = sdk.model("google/gemma-3-4b-it")
-                return model
-            except Exception as gemma_error:
-                return None
+                models['bytez_qwen'] = sdk.model("Qwen/Qwen3-4B-Instruct-2507")
+                st.success("✓ Bytez Qwen model loaded")
+            except Exception as qwen_error:
+                # Fallback to Gemma model
+                try:
+                    models['bytez_gemma'] = sdk.model("google/gemma-3-4b-it")
+                    st.success("✓ Bytez Gemma model loaded")
+                except Exception as gemma_error:
+                    st.warning("Bytez models unavailable, using Hugging Face fallback")
+        except Exception as e:
+            st.warning(f"Bytez SDK initialization failed: {e}")
+    
+    # Hugging Face fallback models
+    if HF_AVAILABLE and not models:  # Only load HF if Bytez failed
+        try:
+            # Load a small, efficient model for chat
+            st.info("Loading Hugging Face fallback model...")
+            
+            # Option 1: Try a small instruct model first
+            try:
+                models['hf_chat'] = pipeline(
+                    "text-generation",
+                    model="microsoft/DialoGPT-medium",
+                    torch_dtype=torch.float16,
+                    device_map="auto" if torch.cuda.is_available() else None,
+                    max_length=1024
+                )
+                st.success("✓ Hugging Face DialoGPT model loaded")
+            except Exception as dialo_error:
+                # Option 2: Fallback to a distilled model
+                try:
+                    models['hf_chat'] = pipeline(
+                        "text-generation", 
+                        model="distilgpt2",
+                        torch_dtype=torch.float16,
+                        device_map="auto" if torch.cuda.is_available() else None,
+                        max_length=1024
+                    )
+                    st.success("✓ Hugging Face DistilGPT2 model loaded")
+                except Exception as distil_error:
+                    st.error("All AI models failed to load")
+        
+        except Exception as e:
+            st.error(f"Hugging Face model loading failed: {e}")
+    
+    return models
+
+def call_ai_model(models, messages):
+    """
+    Calls available AI models with fallback hierarchy.
+    Returns response and any error.
+    """
+    system_prompt = None
+    user_question = None
+    
+    # Extract system prompt and user question from messages
+    for msg in messages:
+        if msg["role"] == "system":
+            system_prompt = msg["content"]
+        elif msg["role"] == "user":
+            user_question = msg["content"]
+    
+    if not user_question:
+        return "No question provided.", "No user question"
+    
+    full_prompt = f"{system_prompt}\n\nQuestion: {user_question}\n\nAnswer:"
+    
+    # Try Bytez models first
+    if 'bytez_qwen' in models:
+        try:
+            output, error = models['bytez_qwen'].run(full_prompt)
+            if not error:
+                return output, None
+        except Exception as e:
+            st.warning(f"Bytez Qwen failed: {e}")
+    
+    if 'bytez_gemma' in models:
+        try:
+            output, error = models['bytez_gemma'].run(full_prompt)
+            if not error:
+                return output, None
+        except Exception as e:
+            st.warning(f"Bytez Gemma failed: {e}")
+    
+    # Hugging Face fallback
+    if 'hf_chat' in models:
+        try:
+            # For DialoGPT or similar models
+            if hasattr(models['hf_chat'], 'tokenizer'):
+                # This is a pipeline
+                response = models['hf_chat'](
+                    full_prompt,
+                    max_new_tokens=500,
+                    do_sample=True,
+                    temperature=0.7,
+                    pad_token_id=models['hf_chat'].tokenizer.eos_token_id,
+                    repetition_penalty=1.1
+                )
+                if isinstance(response, list) and len(response) > 0:
+                    generated_text = response[0]['generated_text']
+                    # Extract only the new generated part
+                    if generated_text.startswith(full_prompt):
+                        answer = generated_text[len(full_prompt):].strip()
+                    else:
+                        answer = generated_text
+                    return answer, None
+            else:
+                # Handle other model types
+                return "Hugging Face model available but specific handling not implemented.", "Model handling error"
                 
-    except Exception as e:
-        st.error(f"Failed to initialize Bytez SDK: {e}")
-        return None
+        except Exception as e:
+            error_msg = f"Hugging Face model error: {str(e)}"
+            st.error(error_msg)
+            return None, error_msg
+    
+    return None, "All AI models failed"
 
 def load_repo_content():
     """
@@ -487,22 +603,6 @@ def search_in_repo(query, documents, max_results=5):
         
     except Exception as e:
         return []
-
-def call_bytez_model(model, messages):
-    """
-    Calls the Bytez model using the official SDK.
-    """
-    try:
-        # Call the model using the SDK
-        output, error = model.run(messages)
-        
-        if error:
-            return f"Model Error: {error}", None
-        else:
-            return None, output
-            
-    except Exception as e:
-        return f"Exception calling model: {str(e)}", None
 
 def detect_question_quality(question):
     """
@@ -657,9 +757,62 @@ IMPORTANT JAIN CONCEPTS TO REFERENCE WHEN RELEVANT:
 """
     return sources_context
 
-def get_ai_response(question, documents, bytez_model):
+def get_fallback_response(question):
+    """Ultimate fallback when all AI models fail."""
+    question_lower = question.lower()
+    
+    # Match with quick questions database
+    for key, data in QUICK_QUESTIONS_DATABASE.items():
+        if any(word in question_lower for word in data['question'].lower().split()[:3]):
+            return data['answer']
+    
+    # Generic fallback responses
+    fallback_responses = {
+        'english': """**મુખ્ય વિચાર / Main Concept**
+• I'm currently experiencing technical difficulties with my AI models
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• Please try the 'Quick Questions' section for instant answers
+• You can also explore the 'Learn' section for resources
+• Try rephrasing your question
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• Visit Digital Jain Pathshala: https://digitaljainpathshala.org/blogs
+• Check Jain eLibrary: https://www.jainelibrary.org
+• Explore JainQQ: https://www.jainqq.org
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• Your spiritual journey is important - please try again soon
+
+**સારાંશ / Summary**
+• Technical issue detected - using fallback mode""",
+        
+        'gujarati': """**મુખ્ય વિચાર / Main Concept**
+• હું હાલમાં મારી AI મોડલ્સ સાથે તકનીકી મુશ્કેલીઓનો સામનો કરી રહ્યો છું
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• કૃપા કરીને ત્વરિત જવાબો માટે 'Quick Questions' વિભાગ અજમાવો
+• તમે સંસાધનો માટે 'Learn' વિભાગ પણ એક્સપ્લોર કરી શકો છો
+• તમારો પ્રશ્ન ફરીથી લખવાનો પ્રયાસ કરો
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• ડિજિટલ જૈન પાઠશાળા મુલાકાત લો: https://digitaljainpathshala.org/blogs
+• જૈન ઈ-લાઈબ્રેરી તપાસો: https://www.jainelibrary.org
+• જૈનQQ એક્સપ્લોર કરો: https://www.jainqq.org
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• તમારી આધ્યાત્મિક યાત્રા મહત્વપૂર્ણ છે - કૃપા કરીને ફરી પ્રયાસ કરો
+
+**સારાંશ / Summary**
+• તકનીકી સમસ્યા શોધાઈ - ફોલબેક મોડનો ઉપયોગ કરી રહ્યા છીએ"""
+    }
+    
+    language = detect_language(question)
+    return fallback_responses.get(language, fallback_responses['english'])
+
+def get_ai_response(question, documents, ai_models):
     """
-    Gets relevant context and calls Bytez model for response.
+    Gets relevant context and calls AI models for response with fallbacks.
     """
     try:
         # Check for prohibited topics first
@@ -746,17 +899,18 @@ REMEMBER: ONLY BULLET POINTS, NO PARAGRAPHS!"""
             }
         ]
         
-        # Call Bytez model
-        error, output = call_bytez_model(bytez_model, messages)
+        # Call AI models with fallback
+        output, error = call_ai_model(ai_models, messages)
         
         if error:
-            return f"Error: {error}", relevant_docs, suggestions
+            # Ultimate fallback - use quick questions database if AI fails
+            return get_fallback_response(question), relevant_docs, suggestions
         elif output:
             # Apply formatting to ensure bullet points
             formatted_output = format_response_to_bullet_points(output)
             return formatted_output, relevant_docs, suggestions
         else:
-            return "No response received from the AI model.", relevant_docs, suggestions
+            return get_fallback_response(question), relevant_docs, suggestions
         
     except Exception as e:
         return f"Error processing your question: {str(e)}", [], []
@@ -1190,7 +1344,7 @@ def process_user_question(question):
             bot_response, source_docs, suggestions = get_ai_response(
                 question, 
                 st.session_state.repo_content, 
-                st.session_state.bytez_model
+                st.session_state.ai_models
             )
             
             # Add bot response
@@ -1312,14 +1466,13 @@ def main():
     """, unsafe_allow_html=True)
     
     # Initialize AI Model if not already done
-    if st.session_state.bytez_model is None:
+    if st.session_state.ai_models is None:
         with st.spinner("🔄 Loading AI assistant..."):
-            bytez_model = initialize_bytez_model()
-            if bytez_model is not None:
-                st.session_state.bytez_model = bytez_model
+            ai_models = initialize_ai_models()
+            if ai_models:
+                st.session_state.ai_models = ai_models
             else:
-                st.error("Failed to connect to AI service. Please refresh the page.")
-                st.stop()
+                st.warning("AI models not available. Using quick questions database only.")
     
     # Load Knowledge Base if not already done
     if st.session_state.repo_content is None:
