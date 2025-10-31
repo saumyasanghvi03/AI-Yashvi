@@ -1,8 +1,30 @@
 import streamlit as st
 from datetime import datetime
 import pytz
-import requests
-import json
+import tempfile
+import os
+import shutil
+from git import Repo
+import glob
+import re
+
+# --- Bytez SDK Import ---
+try:
+    from bytez import Bytez
+    BYTEZ_AVAILABLE = True
+except ImportError:
+    st.error("Bytez package not installed. Please install it with: pip install bytez")
+    BYTEZ_AVAILABLE = False
+
+# --- Hugging Face Fallback Imports ---
+try:
+    from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
+    from transformers import GenerationConfig
+    import torch
+    HF_AVAILABLE = True
+except ImportError:
+    st.warning("Hugging Face transformers not available. Install with: pip install transformers torch accelerate")
+    HF_AVAILABLE = False
 
 # --- Configuration ---
 st.set_page_config(
@@ -11,6 +33,12 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# --- Hard-coded Repo URL ---
+REPO_URL = "https://github.com/saumyasanghvi03/AI-Yashvi/"
+
+# --- Bytez Configuration ---
+BYTEZ_API_KEY = "90d252f09c55cacf3dcc914b5bb4ac01"
 
 # --- Rate Limiting Logic ---
 IST = pytz.timezone('Asia/Kolkata')
@@ -317,6 +345,12 @@ def initialize_user_session():
     if "last_reset_date" not in st.session_state:
         st.session_state.last_reset_date = datetime.now(IST).date()
     
+    if "repo_content" not in st.session_state:
+        st.session_state.repo_content = None
+    
+    if "ai_models" not in st.session_state:
+        st.session_state.ai_models = None
+    
     if "admin_mode" not in st.session_state:
         st.session_state.admin_mode = False
     
@@ -325,6 +359,9 @@ def initialize_user_session():
     
     if "user_name" not in st.session_state:
         st.session_state.user_name = ""
+    
+    if "show_fallback_ui" not in st.session_state:
+        st.session_state.show_fallback_ui = False
 
 def check_and_reset_limit():
     """Checks if the day has changed (midnight IST) and resets the limit."""
@@ -340,6 +377,281 @@ def get_remaining_questions():
         return "∞ (Admin Mode)"
     return DAILY_QUESTION_LIMIT - st.session_state.question_count
 
+# --- UPGRADE: Cached Functions ---
+@st.cache_resource
+def cached_initialize_ai_models():
+    """Initialize AI models with fallback hierarchy."""
+    models = {}
+    
+    # Try Bytez models first
+    if BYTEZ_AVAILABLE:
+        try:
+            sdk = Bytez(BYTEZ_API_KEY)
+            # Try Qwen model first
+            try:
+                models['bytez_qwen'] = sdk.model("Qwen/Qwen3-4B-Instruct-2507")
+                st.success("✓ Bytez Qwen model loaded")
+            except Exception as qwen_error:
+                # Fallback to Gemma model
+                try:
+                    models['bytez_gemma'] = sdk.model("google/gemma-3-4b-it")
+                    st.success("✓ Bytez Gemma model loaded")
+                except Exception as gemma_error:
+                    st.warning("Bytez models unavailable, using Hugging Face fallback")
+        except Exception as e:
+            st.warning(f"Bytez SDK initialization failed: {e}")
+    
+    # Hugging Face fallback models
+    if HF_AVAILABLE and not models:  # Only load HF if Bytez failed
+        try:
+            # Load a small, efficient model for chat
+            st.info("Loading Hugging Face fallback model...")
+            
+            # Option 1: Try a small instruct model first
+            try:
+                models['hf_chat'] = pipeline(
+                    "text-generation",
+                    model="microsoft/DialoGPT-medium",
+                    torch_dtype=torch.float16,
+                    device_map="auto" if torch.cuda.is_available() else None,
+                    max_length=1024
+                )
+                st.success("✓ Hugging Face DialoGPT model loaded")
+            except Exception as dialo_error:
+                # Option 2: Fallback to a distilled model
+                try:
+                    models['hf_chat'] = pipeline(
+                        "text-generation", 
+                        model="distilgpt2",
+                        torch_dtype=torch.float16,
+                        device_map="auto" if torch.cuda.is_available() else None,
+                        max_length=1024
+                    )
+                    st.success("✓ Hugging Face DistilGPT2 model loaded")
+                except Exception as distil_error:
+                    st.error("All AI models failed to load")
+        
+        except Exception as e:
+            st.error(f"Hugging Face model loading failed: {e}")
+    
+    return models
+
+@st.cache_resource
+def cached_load_repo_content():
+    """
+    Clones the GitHub repo and loads text files.
+    Returns a list of documents with metadata.
+    """
+    try:
+        with st.spinner("Loading knowledge base (one-time setup)..."):
+            with tempfile.TemporaryDirectory() as temp_dir:
+                Repo.clone_from(REPO_URL, temp_dir)
+                
+                # Find all text files
+                documents = []
+                
+                # Define file patterns to search for
+                patterns = ['**/*.txt', '**/*.md', '**/*.py', '**/*.rst', '**/*.json', '**/*.yaml', '**/*.yml']
+                
+                for pattern in patterns:
+                    for file_path in glob.glob(os.path.join(temp_dir, pattern), recursive=True):
+                        try:
+                            # Skip hidden files and directories
+                            if os.path.basename(file_path).startswith('.'):
+                                continue
+                                
+                            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                content = f.read()
+                                if content.strip():  # Only add non-empty files
+                                    # Get relative path for display
+                                    rel_path = os.path.relpath(file_path, temp_dir)
+                                    documents.append({
+                                        'source': rel_path,
+                                        'content': content,
+                                        'file_size': len(content)
+                                    })
+                        except Exception:
+                            continue  # Skip files that can't be read
+
+                if not documents:
+                    st.error("No compatible documents found in this repository.")
+                    return None
+                
+                st.success("✓ Knowledge base loaded")
+                return documents
+
+    except Exception as e:
+        st.error(f"Error loading repository: {e}")
+        return None
+# --- END UPGRADE ---
+
+def call_ai_model(models, messages):
+    """
+    Calls available AI models with fallback hierarchy.
+    Returns response and any error.
+    """
+    system_prompt = None
+    user_question = None
+    
+    # Extract system prompt and user question from messages
+    for msg in messages:
+        if msg["role"] == "system":
+            system_prompt = msg["content"]
+        elif msg["role"] == "user":
+            user_question = msg["content"]
+    
+    if not user_question:
+        return "No question provided.", "No user question"
+    
+    full_prompt = f"{system_prompt}\n\nAnswer:"
+    
+    # Try Bytez models first
+    if 'bytez_qwen' in models:
+        try:
+            output, error = models['bytez_qwen'].run(full_prompt)
+            if not error:
+                return output, None
+        except Exception as e:
+            st.warning(f"Bytez Qwen failed: {e}")
+    
+    if 'bytez_gemma' in models:
+        try:
+            output, error = models['bytez_gemma'].run(full_prompt)
+            if not error:
+                return output, None
+        except Exception as e:
+            st.warning(f"Bytez Gemma failed: {e}")
+    
+    # Hugging Face fallback
+    if 'hf_chat' in models:
+        try:
+            # For DialoGPT or similar models
+            if hasattr(models['hf_chat'], 'tokenizer'):
+                # This is a pipeline
+                response = models['hf_chat'](
+                    full_prompt,
+                    max_new_tokens=500,
+                    do_sample=True,
+                    temperature=0.7,
+                    pad_token_id=models['hf_chat'].tokenizer.eos_token_id,
+                    repetition_penalty=1.1
+                )
+                if isinstance(response, list) and len(response) > 0:
+                    generated_text = response[0]['generated_text']
+                    # Extract only the new generated part
+                    if generated_text.startswith(full_prompt):
+                        answer = generated_text[len(full_prompt):].strip()
+                    else:
+                        answer = generated_text
+                    return answer, None
+            else:
+                # Handle other model types
+                return "Hugging Face model available but specific handling not implemented.", "Model handling error"
+                
+        except Exception as e:
+            error_msg = f"Hugging Face model error: {str(e)}"
+            st.error(error_msg)
+            return None, error_msg
+    
+    return None, "All AI models failed"
+
+def search_in_repo(query, documents, max_results=5):
+    """Enhanced keyword search in repository documents."""
+    try:
+        query_lower = query.lower().strip()
+        if not query_lower:
+            return []
+            
+        results = []
+        
+        for doc in documents:
+            content_lower = doc['content'].lower()
+            source_lower = doc['source'].lower()
+            
+            # Score based on different criteria
+            score = 0
+            
+            # 1. Exact phrase match in content (highest priority)
+            if query_lower in content_lower:
+                score += 10
+                # Find the best matching snippet
+                index = content_lower.find(query_lower)
+                start = max(0, index - 150)
+                end = min(len(doc['content']), index + len(query) + 150)
+                snippet = doc['content'][start:end]
+                
+            # 2. File name match
+            elif query_lower in source_lower:
+                score += 8
+                snippet = doc['content'][:500] + "..." if len(doc['content']) > 500 else doc['content']
+                
+            # 3. Individual word matches
+            else:
+                query_words = set(re.findall(r'\w+', query_lower))
+                content_words = set(re.findall(r'\w+', content_lower))
+                common_words = query_words.intersection(content_words)
+                
+                if common_words:
+                    score = len(common_words) / len(query_words) * 6
+                    snippet = doc['content'][:500] + "..." if len(doc['content']) > 500 else doc['content']
+                else:
+                    continue  # No matches, skip this document
+            
+            if score > 0:
+                results.append({
+                    'source': doc['source'],
+                    'content': snippet,
+                    'score': score,
+                    'file_size': doc['file_size']
+                })
+        
+        # Sort by score and return top results
+        results.sort(key=lambda x: x['score'], reverse=True)
+        return results[:max_results]
+        
+    except Exception as e:
+        return []
+
+def detect_question_quality(question):
+    """
+    Detects if the question is well-structured and comprehensive.
+    Returns a quality score and suggestions for improvement.
+    """
+    quality_score = 0
+    suggestions = []
+    
+    # Check question length
+    if len(question.split()) >= 3:
+        quality_score += 1
+    
+    # Check for specific question words
+    question_words = ['what', 'how', 'why', 'explain', 'describe', 'compare', 'difference']
+    if any(word in question.lower() for word in question_words):
+        quality_score += 1
+    
+    return quality_score, suggestions
+
+def detect_sensitive_topic(question):
+    """
+    Detects if the question involves sensitive topics that violate Jain principles.
+    """
+    prohibited_keywords = {
+        'sexual': ['sex', 'masturbation', 'porn', 'sexual', 'intercourse', 'lust', 'desire', 'kama'],
+        'nonveg': ['nonveg', 'non-veg', 'meat', 'chicken', 'fish', 'egg', 'eggs', 'mutton', 'beef', 'pork'],
+        'alcohol': ['alcohol', 'beer', 'wine', 'whisky', 'drink', 'drunk', 'intoxication', 'smoking', 'cigarette'],
+        'violence': ['violence', 'fight', 'attack', 'hurt', 'kill', 'war', 'weapon'],
+        'inappropriate': ['drugs', 'weed', 'marijuana', 'cannabis', 'addiction']
+    }
+    
+    detected_topics = []
+    question_lower = question.lower()
+    
+    for category, keywords in prohibited_keywords.items():
+        if any(keyword in question_lower for keyword in keywords):
+            detected_topics.append(category)
+    
+    return detected_topics
+
 def detect_language(question):
     """
     Simple language detection for Gujarati and English.
@@ -349,78 +661,344 @@ def detect_language(question):
         return 'gujarati'
     return 'english'
 
-def get_fallback_response(question):
-    """Get response from quick questions database."""
-    question_lower = question.lower().strip()
+def get_prohibited_response(language, topic):
+    """
+    Returns a standardized response for prohibited topics.
+    """
+    if language == 'gujarati':
+        return f"""**મુખ્ય વિચાર / Main Concept**
+• આ વિષય જૈન સિદ્ધાંતો સાથે સુસંગત નથી
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• અહિંસા - સર્વભૂત હિતેરતાઃ (સૌ પ્રાણીઓનું ભલું)
+• સંયમ - ઇન્દ્રિયો પર નિયંત્રણ
+• શુદ્ધતા - મન, વચન અને કાયાની પવિત્રતા
+
+**ધાર્મિક સલાહ / Religious Advice**
+• ભગવાન સાથે જોડાણ કરો નવકાર મંત્ર દ્વારા
+• આ ટેવ છોડવા ભગવાનનાં આશીર્વાદ માંગો
+• યાદ રાખો કે દરેક આત્મા પરિવર્તનની શક્તિ ધરાવે છે
+
+**વ્યવહારુ સૂચનો / Practical Suggestions**
+• પ્રલોભનોનો સામના કરવા 10 મિનિટ નવકાર મંત્ર જપો
+• "તત્વાર્થ સૂત્ર" જેવા ધાર્મિક ગ્રંથો વાંચો
+• જૈન સત્સંગ અથવા ઓનલાઈન સમુદાયમાં જોડાવો
+
+**પ્રેરણા / Inspiration**
+• અનેક મહાન આત્માઓએ ધાર્મિક સાધનાથી પરિવર્તન અનુભવ્યું છે
+• તમારી શુદ્ધ આત્મા ફરી ચમકવા માટે રાહ જોઈ રહી છે
+
+**સારાંશ / Summary**
+• આંતરિક શાંતિ અને શક્તિ માટે ધાર્મિક સાધનાઓ તરફ વળો"""
+    else:
+        return f"""**મુખ્ય વિચાર / Main Concept**
+• This topic is not aligned with Jain principles
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• Ahimsa - Non-violence towards all living beings
+• Self-discipline - Control over senses and desires
+• Purity - Maintaining physical and mental cleanliness
+
+**ધાર્મિક સલાહ / Religious Advice**
+• Connect with God through daily Navkar Mantra chanting
+• Seek divine blessings to overcome challenging habits
+• Remember every soul has the power to transform
+
+**વ્યવહારુ સૂચનો / Practical Suggestions**
+• Chant Navkar Mantra for 10 minutes when facing temptations
+• Read spiritual texts like "Tattvartha Sutra" for guidance
+• Join Jain satsangs or online spiritual communities
+
+**પ્રેરણા / Inspiration**
+• Many great souls have transformed through spiritual practice
+• Your pure soul is waiting to shine brightly again
+
+**સારાંશ / Summary**
+• Turn to spiritual practices to find strength and inner peace"""
+
+def format_response_to_bullet_points(response):
+    """
+    Converts paragraph responses to strict bullet point format.
+    This is a fallback function to ensure proper formatting.
+    """
+    # If response already has proper bullet points, return as is
+    if '•' in response or '- ' in response:
+        return response
     
-    # Improved keyword-based matching for common questions
-    question_keywords = {
-        "jainism": "jainism_basics",
-        "what is jain": "jainism_basics", 
-        "basic principle": "jainism_basics",
-        "navkar": "navkar_mantra",
-        "namokar": "navkar_mantra",
-        "mantra": "navkar_mantra",
-        "ahimsa": "ahimsa",
-        "non violence": "ahimsa",
-        "non-violence": "ahimsa",
-        "three jewel": "three_jewels",
-        "ratnatraya": "three_jewels",
-        "ayambil": "ayambil",
-        "fasting": "ayambil",
-        "meditation": "meditation",
-        "karma": "karma_theory",
-        "vegetarian": "vegetarianism",
-        "diet": "vegetarianism"
+    # Split into sentences and convert to bullet points
+    sentences = re.split(r'[.!?]+', response)
+    bullet_points = []
+    
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if sentence and len(sentence) > 10:  # Only meaningful sentences
+            # Ensure it starts with a bullet point
+            if not sentence.startswith('•'):
+                sentence = '• ' + sentence
+            bullet_points.append(sentence)
+    
+    return '\n'.join(bullet_points)
+
+def get_jain_knowledge_context():
+    """
+    Returns context about additional Jain knowledge sources for the AI model.
+    """
+    sources_context = "ADDITIONAL JAIN KNOWLEDGE SOURCES FOR REFERENCE:\n\n"
+    for source_name, source_url in JAIN_KNOWLEDGE_SOURCES.items():
+        sources_context += f"• {source_name}: {source_url}\n"
+    
+    sources_context += f"\n\n{DIGITAL_JAIN_PATHSHALA_CONTENT}"
+    
+    sources_context += """
+    
+IMPORTANT JAIN CONCEPTS TO REFERENCE WHEN RELEVANT:
+
+• Ayambil: A Jain spiritual practice combining intermittent fasting with controlled diet
+• Navpad Oli: Nine-day festival dedicated to worshipping the nine supreme posts
+• Ras parityag: Control of taste buds and renouncing desire for flavor
+• Tattvartha Sutra: Fundamental Jain text covering all aspects of Jain philosophy
+• Navkar Mantra: The most important mantra in Jainism
+• Ahimsa: Non-violence towards all living beings
+• Anekantavada: Doctrine of multiple viewpoints
+• Aparigraha: Non-attachment to possessions
+• Three Jewels: Right faith, right knowledge, right conduct
+"""
+    return sources_context
+
+def get_fallback_response(question):
+    """Ultimate fallback when all AI models fail."""
+    question_lower = question.lower()
+    
+    # --- BUG FIX ---
+    # The original logic was matching any word from the question_data,
+    # causing "What is Jainism?" to match "What is the Navkar Mantra?".
+    # The new logic checks if the *primary topic word* from the key 
+    # (e.g., "jainism", "navkar", "ahimsa") is in the user's question.
+    
+    # Try matching based on the primary topic word in the dictionary key
+    for key, data in QUICK_QUESTIONS_DATABASE.items():
+        # Get the main topic from the key (e.g., "jainism" from "jainism_basics")
+        topic_word = key.split('_')[0]
+        
+        if topic_word in question_lower:
+            # Special case: 'three' is too general, check for 'three jewels'
+            if topic_word == 'three' and 'jewels' not in question_lower:
+                continue
+            return data['answer']
+    # --- END OF BUG FIX ---
+
+    # --- REPAIR: Check WHY we are falling back ---
+    # If no AI models were loaded at all, show a specific error.
+    if not st.session_state.ai_models:
+        specific_error_message_eng = """**મુખ્ય વિચાર / Main Concept**
+• The AI models are not available.
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• This app requires installing Python packages to function.
+• The `bytez` and `transformers` packages could not be found.
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• If you are running this locally, please install the dependencies:
+• `pip install bytez transformers torch accelerate`
+
+**સારાંશ / Summary**
+• AI features are disabled. Using pre-written answers only."""
+        
+        specific_error_message_guj = """**મુખ્ય વિચાર / Main Concept**
+• AI મોડલ ઉપલબ્ધ નથી.
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• આ એપ્લિકેશનને કાર્ય કરવા માટે પાઇથોન પેકેજો ઇન્સ્ટોલ કરવાની જરૂર છે.
+• `bytez` અને `transformers` પેકેજો મળી શક્યા નથી.
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• જો તમે આને સ્થાનિક રીતે ચલાવી રહ્યા છો, તો કૃપા કરીને ડિપેન્ડન્સી ઇન્સ્ટોલ કરો:
+• `pip install bytez transformers torch accelerate`
+
+**સારાંશ / Summary**
+• AI સુવિધાઓ અક્ષમ છે. ફક્ત પૂર્વ-લેખિત જવાબોનો ઉપયોગ કરી રહ્યા છીએ."""
+        
+        if detect_language(question) == 'gujarati':
+            return specific_error_message_guj
+        else:
+            return specific_error_message_eng
+    # --- END REPAIR ---
+    
+    # Generic fallback responses (if models *are* loaded but just failed)
+    # This message will be INTERCEPTED by process_user_question
+    fallback_responses = {
+        'english': """**મુખ્ય વિચાર / Main Concept**
+• I'm currently experiencing technical difficulties with my AI models
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• Please try the 'Quick Questions' section for instant answers
+• You can also explore the 'Learn' section for resources
+• Try rephrasing your question
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• Visit Digital Jain Pathshala: https://digitaljainpathshala.org/blogs
+• Check Jain eLibrary: https://www.jainelibrary.org
+• Explore JainQQ: https://www.jainqq.org
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• Your spiritual journey is important - please try again soon
+
+**સારાંશ / Summary**
+• Technical issue detected - using fallback mode""",
+        
+        'gujarati': """**મુખ્ય વિચાર / Main Concept**
+• હું હાલમાં મારી AI મોડલ્સ સાથે તકનીકી મુશ્કેલીઓનો સામનો કરી રહ્યો છું
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• કૃપા કરીને ત્વરિત જવાબો માટે 'Quick Questions' વિભાગ અજમાવો
+• તમે સંસાધનો માટે 'Learn' વિભાગ પણ એક્સપ્લોર કરી શકો છો
+• તમારો પ્રશ્ન ફરીથી લખવાનો પ્રયાસ કરો
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• ડિજિટલ જૈન પાઠશાળા મુલાકાત લો: https://digitaljainpathshala.org/blogs
+• જૈન ઈ-લાઈબ્રેરી તપાસો: https://www.jainelibrary.org
+• જૈનQQ એક્સપ્લોર કરો: https://www.jainqq.org
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• તમારી આધ્યાત્મિક યાત્રા મહત્વપૂર્ણ છે - કૃપા કરીને ફરી પ્રયાસ કરો
+
+**સારાંશ / Summary**
+• તકનીકી સમસ્યા શોધાઈ - ફોલબેક મોડનો ઉપયોગ કરી રહ્યા છીએ"""
     }
     
-    # Check for direct keyword matches first
-    for keyword, response_key in question_keywords.items():
-        if keyword in question_lower:
-            return QUICK_QUESTIONS_DATABASE[response_key]["answer"]
-    
-    # If no keyword match, use a generic response
     language = detect_language(question)
-    
-    if language == 'gujarati':
-        return """**મુખ્ય વિચાર / Main Concept**
-• હું હાલમાં આ પ્રશ્નનો સીધો જવાબ આપવામાં અસમર્થ છું
+    return fallback_responses.get(language, fallback_responses['english'])
+
+def get_ai_response(question, documents, ai_models):
+    """
+    Gets relevant context and calls AI models for response with fallbacks.
+    """
+    try:
+        # Check for prohibited topics first
+        prohibited_topics = detect_sensitive_topic(question)
+        if prohibited_topics:
+            language = detect_language(question)
+            return get_prohibited_response(language, prohibited_topics[0]), [], []
+
+        # Analyze question quality and sensitivity
+        quality_score, suggestions = detect_question_quality(question)
+        language = detect_language(question)
+        
+        # Search for relevant documents
+        relevant_docs = search_in_repo(question, documents, max_results=3)
+        
+        # Combine context from relevant documents
+        context = "\n\n".join([doc['content'] for doc in relevant_docs])
+
+        # --- UPGRADE: Conversational Memory ---
+        # Build conversation history
+        history_messages = st.session_state.messages[-6:] # Get last 6 messages (3 pairs)
+        conversation_history = "\n\nPREVIOUS CONVERSATION CONTEXT:\n"
+        if len(history_messages) > 1: # More than just the initial welcome
+            for msg in history_messages:
+                if msg["role"] == "user":
+                    conversation_history += f"User: {msg['content']}\n"
+                elif msg["role"] == "assistant":
+                    conversation_history += f"Assistant: {msg['content']}\n"
+        else:
+            conversation_history = "\n\nThis is the first question.\n"
+        # --- END UPGRADE ---
+        
+        # SIMPLIFIED system prompt without complex practices
+        base_prompt = """You are JainQuest, a helpful AI assistant for Jain philosophy.
+
+CRITICAL FORMAT RULES - YOU MUST FOLLOW EXACTLY:
+1. EVERY section must use ONLY bullet points (•)
+2. NO paragraphs allowed - only short, clear bullet points
+3. Keep each bullet point to 1-2 lines maximum
+4. Be practical and realistic with advice
+5. Include specific, actionable suggestions
+6. Use simple language everyone can understand
+7. NEVER write paragraphs - only bullet points
+8. ALWAYS use • for bullet points, not - or *
+9. Use the PREVIOUS CONVERSATION CONTEXT to understand follow-up questions (e.g., "what about it?").
+
+REQUIRED SECTIONS (in this exact order):
+
+**મુખ્ય વિચાર / Main Concept**
+• [One clear bullet point explaining the core idea]
 
 **મુખ્ય મુદ્દાઓ / Key Points**
-• કૃપા કરીને તમારો પ્રશ્ન ફરીથી લખવાનો પ્રયાસ કરો
-• તમે 'Quick Questions' વિભાગમાં સામાન્ય પ્રશ્નોના જવાબ મેળવી શકો છો
-• અથવા તમારો પ્રશ્ન વિવિધ શબ્દોમાં રજૂ કરો
+• [Point 1 - short and clear]
+• [Point 2 - short and clear]
+• [Point 3 - short and clear]
+
+**જૈન સિદ્ધાંતો / Jain Principles**
+• [Relevant Jain principle 1]
+• [Relevant Jain principle 2]
 
 **વ્યવહારુ સલાહ / Practical Advice**
-• જૈન ધર્મના સિદ્ધાંતો વિશે વાંચો
-• ધાર્મિક સ્રોતોનો અભ્યાસ કરો
-• સ્થાનિક જૈન સમુદાય સાથે જોડાવો
+• [Suggest simple daily practices]
+• [Recommend basic meditation techniques]
+• [Something easy to do today]
 
 **ભાવનાત્મક સહાય / Emotional Support**
-• તમારી આધ્યાત્મિક શોધ મહત્વપૂર્ણ છે - ચાલુ રાખો
+• [One compassionate, encouraging bullet point]
 
 **સારાંશ / Summary**
-• કૃપા કરીને પ્રશ્ન ફરીથી લખો અથવા Quick Questions વિભાગ અજમાવો"""
-    else:
-        return """**મુખ્ય વિચાર / Main Concept**
-• I'm currently unable to provide a direct answer to this specific question
+• [One final takeaway bullet point]
 
-**મુખ્ય મુદ્દાઓ / Key Points**
-• Please try rephrasing your question
-• You can find answers to common questions in the 'Quick Questions' section
-• Or try asking your question using different words
+REMEMBER: ONLY BULLET POINTS, NO PARAGRAPHS!"""
 
-**વ્યવહારુ સલાહ / Practical Advice**
-• Read about Jain principles and philosophy
-• Study religious texts and resources
-• Connect with local Jain community
+        # Add language instruction
+        if language == 'gujarati':
+            language_instruction = "\n\nIMPORTANT: Write the CONTENT in GUJARATI language, but keep the section headings in both Gujarati and English as shown above."
+        else:
+            language_instruction = "\n\nIMPORTANT: Write the CONTENT in ENGLISH language, but keep the section headings in both Gujarati and English as shown above."
 
-**ભાવનાત્મક સહાય / Emotional Support**
-• Your spiritual quest is important - please continue
+        # Add context if available
+        context_part = ""
+        if context.strip():
+            context_part = f"\n\nRELEVANT CONTEXT FROM KNOWLEDGE BASE:\n{context}\n\n"
 
-**સારાંશ / Summary**
-• Please rephrase your question or try the Quick Questions section"""
+        # Add Jain knowledge sources context
+        jain_sources_context = get_jain_knowledge_context()
 
+        # --- UPGRADE: Modified System Prompt ---
+        system_prompt = (
+            base_prompt + 
+            language_instruction + 
+            conversation_history +  # Add memory
+            context_part + 
+            jain_sources_context + 
+            f"\n\nNEW QUESTION: {question}"
+        )
+        # --- END UPGRADE ---
+
+        # Prepare messages for the model
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user", 
+                "content": question # The user's latest question
+            }
+        ]
+        
+        # Call AI models with fallback
+        output, error = call_ai_model(ai_models, messages)
+        
+        if error:
+            # Ultimate fallback - use quick questions database if AI fails
+            return get_fallback_response(question), relevant_docs, suggestions
+        elif output:
+            # Apply formatting to ensure bullet points
+            formatted_output = format_response_to_bullet_points(output)
+            return formatted_output, relevant_docs, suggestions
+        else:
+            return get_fallback_response(question), relevant_docs, suggestions
+        
+    except Exception as e:
+        return f"Error processing your question: {str(e)}", [], []
+
+# --- Enhanced UI Components ---
 def render_sidebar():
     """Renders the enhanced sidebar with navigation and user info."""
     with st.sidebar:
@@ -626,71 +1204,131 @@ def render_quick_questions_page():
 
 def render_chat_page():
     """Renders the main chat interface."""
-    # Header with quick actions
-    col1, col2 = st.columns([3, 1])
-    with col1:
+
+    # --- REPAIR 1: Check if AI models are available before rendering chat ---
+    if not st.session_state.ai_models:
         st.markdown("### 💭 Ask Your Spiritual Questions")
-    with col2:
-        if st.button("🔄 Clear Chat", use_container_width=True):
-            st.session_state.messages = [
-                {"role": "assistant", "content": "Chat cleared! How can I help you with Jain philosophy today? 🌟"}
-            ]
+        st.markdown("---")
+        
+        st.error("""
+        **AI Chat Disabled: Technical Issue**
+        
+        The core AI models for conversation are not available. This is likely because the required Python packages (`bytez` or `transformers`) are not installed in this environment.
+        
+        **You can still use the app's other features:**
+        """)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("❓ Go to Quick Questions", use_container_width=True, type="primary"):
+                st.session_state.current_page = "Quick Questions"
+                st.rerun()
+        with col2:
+            if st.button("📚 Go to Learn", use_container_width=True, type="primary"):
+                st.session_state.current_page = "Learn"
+                st.rerun()
+                
+        st.markdown("---")
+        st.warning("If you are the app developer, please install the missing packages: `pip install bytez transformers torch accelerate`")
+
+    # --- REPAIR 2: Check if a runtime fallback occurred ---
+    elif st.session_state.show_fallback_ui:
+        st.markdown("### 💭 Ask Your Spiritual Questions")
+        st.markdown("---")
+        
+        st.error("""
+        **AI Chat Temporarily Unavailable**
+        
+        We are experiencing technical difficulties connecting to the AI models. This may be due to high traffic or an API service issue.
+        
+        **You can still use the app's other features:**
+        """)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("❓ Go to Quick Questions", use_container_width=True, type="primary"):
+                st.session_state.current_page = "Quick Questions"
+                st.session_state.show_fallback_ui = False # Reset flag
+                st.rerun()
+        with col2:
+            if st.button("📚 Go to Learn", use_container_width=True, type="primary"):
+                st.session_state.current_page = "Learn"
+                st.session_state.show_fallback_ui = False # Reset flag
+                st.rerun()
+                
+        st.markdown("---")
+        if st.button("🔄 Try Reconnecting to Chat"):
+            st.session_state.show_fallback_ui = False
             st.rerun()
-    
-    # Simple guidance section
-    st.markdown("---")
-    st.markdown("""
-    <div style='background: #E8F5E8; padding: 1.5rem; border-radius: 15px; margin: 1rem 0;'>
-        <h4 style='color: #2E7D32; margin: 0;'>💡 How to Get the Best Answers</h4>
-        <p style='margin: 0.5rem 0 0 0;'>
-        • Ask specific questions about Jain philosophy, principles, or practices<br>
-        • You can type in English or Gujarati<br>
-        • Get clear, pointwise answers based on authentic sources<br>
-        • Visit <strong>Quick Questions</strong> in sidebar for instant answers to common topics
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Chat Container
-    st.markdown("---")
-    
-    # Chat messages display
-    chat_container = st.container(height=500, border=True)
-    
-    with chat_container:
-        for message in st.session_state.messages:
-            if message["role"] == "user":
-                st.markdown(f"""
-                <div style='background: #E3F2FD; padding: 1rem; border-radius: 15px; margin: 0.5rem 0; border-left: 5px solid #1976D2;'>
-                    <div style='font-weight: bold; color: #1565C0;'>👤 You</div>
-                    <div style='margin-top: 0.5rem; font-size: 1.1rem;'>{message["content"]}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div style='background: #F3E5F5; padding: 1rem; border-radius: 15px; margin: 0.5rem 0; border-left: 5px solid #7B1FA2;'>
-                    <div style='font-weight: bold; color: #6A1B9A;'>🙏 JainQuest</div>
-                    <div style='margin-top: 0.5rem; font-size: 1.1rem; line-height: 1.6;'>{message["content"]}</div>
-                </div>
-                """, unsafe_allow_html=True)
-    
-    # Chat input
-    st.markdown("---")
-    question = st.text_area(
-        "**Type your spiritual question here...**", 
-        height=120,
-        placeholder="Example: What is the meaning of life according to Jainism? OR જૈન ધર્મ મુજબ જીવનનો અર્થ શું છે? OR How can I find inner peace?",
-        key="chat_input"
-    )
-    
-    col1, col2 = st.columns([4, 1])
-    with col1:
-        st.info("💡 You can ask in English or Gujarati • 📚 Responses based on authentic Jain sources including Digital Jain Pathshala")
-    with col2:
-        send_clicked = st.button("🚀 Send Question", use_container_width=True, type="primary")
-    
-    if send_clicked and question.strip():
-        process_user_question(question)
+        
+    else:
+        # --- Original Chat Page Code ---
+        # Header with quick actions
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("### 💭 Ask Your Spiritual Questions")
+        with col2:
+            if st.button("🔄 Clear Chat", use_container_width=True):
+                st.session_state.messages = [
+                    {"role": "assistant", "content": "Chat cleared! How can I help you with Jain philosophy today? 🌟"}
+                ]
+                st.rerun()
+        
+        # Simple guidance section
+        st.markdown("---")
+        st.markdown("""
+        <div style='background: #E8F5E8; padding: 1.5rem; border-radius: 15px; margin: 1rem 0;'>
+            <h4 style='color: #2E7D32; margin: 0;'>💡 How to Get the Best Answers</h4>
+            <p style='margin: 0.5rem 0 0 0;'>
+            • Ask specific questions about Jain philosophy, principles, or practices<br>
+            • You can type in English or Gujarati<br>
+            • Get clear, pointwise answers based on authentic sources<br>
+            • Visit <strong>Quick Questions</strong> in sidebar for instant answers to common topics
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Chat Container
+        st.markdown("---")
+        
+        # Chat messages display
+        chat_container = st.container(height=500, border=True)
+        
+        with chat_container:
+            for message in st.session_state.messages:
+                if message["role"] == "user":
+                    st.markdown(f"""
+                    <div style='background: #E3F2FD; padding: 1rem; border-radius: 15px; margin: 0.5rem 0; border-left: 5px solid #1976D2;'>
+                        <div style='font-weight: bold; color: #1565C0;'>👤 You</div>
+                        <div style='margin-top: 0.5rem; font-size: 1.1rem;'>{message["content"]}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div style='background: #F3E5F5; padding: 1rem; border-radius: 15px; margin: 0.5rem 0; border-left: 5px solid #7B1FA2;'>
+                        <div style='font-weight: bold; color: #6A1B9A;'>🙏 JainQuest</div>
+                        <div style='margin-top: 0.5rem; font-size: 1.1rem; line-height: 1.6;'>{message["content"]}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+        
+        # Chat input
+        st.markdown("---")
+        question = st.text_area(
+            "**Type your spiritual question here...**", 
+            height=120,
+            placeholder="Example: What is the meaning of life according to Jainism? OR જૈન ધર્મ મુજબ જીવનનો અર્થ શું છે? OR How can I find inner peace?",
+            key="chat_input"
+        )
+        
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            st.info("💡 You can ask in English or Gujarati • 📚 Responses based on authentic Jain sources including Digital Jain Pathshala")
+        with col2:
+            send_clicked = st.button("🚀 Send Question", use_container_width=True, type="primary")
+        
+        if send_clicked and question.strip():
+            process_user_question(question)
+    # --- END REPAIR ---
 
 def render_learn_page():
     """Renders the learning resources page."""
@@ -828,12 +1466,21 @@ def render_settings_page():
     feedback = st.text_area("Share your feedback or suggestions:", height=100)
     if st.button("Submit Feedback"):
         if feedback.strip():
-            st.success("Thank you for your feedback! 🙏")
+            # --- UPGRADE: Save feedback to file ---
+            try:
+                with open("feedback.txt", "a", encoding="utf-8") as f:
+                    f.write(f"--- {datetime.now(IST)} ---\n")
+                    f.write(f"User: {st.session_state.user_name}\n")
+                    f.write(f"Feedback: {feedback}\n\n")
+                st.success("Thank you for your feedback! 🙏")
+            except Exception as e:
+                st.error(f"Could not save feedback: {e}")
+            # --- END UPGRADE ---
         else:
             st.warning("Please enter your feedback before submitting.")
 
 def process_user_question(question):
-    """Processes user question and generates response."""
+    """Processes user question and generates AI response."""
     # Check limits
     if not st.session_state.admin_mode and st.session_state.question_count >= DAILY_QUESTION_LIMIT:
         st.error(f"❌ Daily limit reached. You've asked {DAILY_QUESTION_LIMIT} questions today.")
@@ -845,9 +1492,23 @@ def process_user_question(question):
     # Show thinking indicator
     with st.spinner("🤔 Consulting Jain wisdom..."):
         try:
-            # Get response from quick questions database
-            bot_response = get_fallback_response(question)
+            # Get AI response
+            bot_response, source_docs, suggestions = get_ai_response(
+                question, 
+                st.session_state.repo_content, 
+                st.session_state.ai_models
+            )
             
+            # --- REPAIR: Intercept generic fallback message ---
+            if "Technical issue detected - using fallback mode" in bot_response:
+                # Don't append this message.
+                # Instead, set a state to show the error UI.
+                st.session_state.show_fallback_ui = True
+                st.session_state.messages.pop() # Remove the user's message
+                st.rerun()
+                return # Stop processing
+            # --- END REPAIR ---
+                
             # Add bot response
             st.session_state.messages.append({"role": "assistant", "content": bot_response})
             
@@ -870,6 +1531,23 @@ def main():
     # Initialize session state
     initialize_user_session()
     check_and_reset_limit()
+
+    # --- UPGRADE: Load cached models and data at the START ---
+    # This runs ONCE per session and is much faster on re-runs.
+    try:
+        if st.session_state.ai_models is None:
+            st.session_state.ai_models = cached_initialize_ai_models()
+    except Exception as e:
+            st.error(f"Failed to load AI models: {e}")
+            st.session_state.ai_models = {} # Set to empty dict to prevent re-load
+
+    try:
+        if st.session_state.repo_content is None:
+            st.session_state.repo_content = cached_load_repo_content()
+    except Exception as e:
+            st.error(f"Failed to load knowledge base: {e}")
+            st.session_state.repo_content = [] # Set to empty list to prevent re-load
+    # --- END UPGRADE ---
     
     # Custom CSS for enhanced UI
     st.markdown("""
@@ -942,7 +1620,7 @@ def main():
     st.markdown(f"""
     <div class="header">
         <h1>🙏 Welcome to JainQuest</h1>
-        <p>Your Spiritual Guide for Jain Philosophy and Daily Practice</p>
+        <p>Your AI Spiritual Guide for Jain Philosophy and Daily Practice</p>
         {f"<h3>Namaste, {st.session_state.user_name}! 🌟</h3>" if st.session_state.user_name else ""}
     </div>
     """, unsafe_allow_html=True)
@@ -965,6 +1643,8 @@ def main():
         <p><em>For authentic spiritual guidance based on Jain teachings • Always consult human experts for critical decisions</em></p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # --- UPGRADE: Removed the old loading blocks from here ---
 
 if __name__ == "__main__":
     main()
