@@ -95,29 +95,6 @@ streamlit run app.py
    - Default URL: `http://localhost:8501`
 
 ---
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-The application uses several configuration parameters that can be adjusted in `app.py`:
-
-- **REPO_URL**: GitHub repository URL for knowledge base (default: current repository)
-- **BYTEZ_API_KEY**: API key for Bytez SDK (required for AI models)
-- **DAILY_QUESTION_LIMIT**: Maximum questions per user per day (default: 10)
-- **ADMIN_PASSWORD**: Admin access password (default: "100370")
-
-### API Keys
-
-To use the Bytez AI models, you'll need to:
-1. Sign up for a Bytez account
-2. Obtain your API key
-3. Replace the `BYTEZ_API_KEY` value in `app.py` (line 50)
-
-**Note:** The application includes fallback mechanisms using Hugging Face models if Bytez is unavailable.
-
----
-
 ## 📖 Usage Guide
 
 ### Chat Interface
@@ -164,10 +141,6 @@ To use the Bytez AI models, you'll need to:
    - Daily question limit
    - Questions asked today
    - Remaining questions
-3. **Enable Admin Mode** (requires password):
-   - Unlimited questions
-   - Reset question counters
-   - Advanced features
 
 ---
 
