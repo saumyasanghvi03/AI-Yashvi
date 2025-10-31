@@ -1,17 +1,8 @@
-Flask==3.0.0
-requests==2.31.0
-gunicorn==21.2.0
-torch==2.2.0
---index-url https://download.pytorch.org/whl/cpu
-diffusers==0.27.0
-transformers==4.37.0
-accelerate==0.27.0
-Pillow==10.2.0
-tokenizers==0.19.0
-streamlit==1.32.0
-pytz==2024.1
-GitPython==3.1.41
-protobuf==4.25.3
-safetensors==0.4.2
-numpy==1.26.4
-huggingface-hub==0.20.3
+streamlit>=1.28.0
+pytz>=2023.3
+gitpython>=3.1.0
+bytez>=0.1.0
+transformers>=4.35.0
+torch>=2.0.0
+accelerate>=0.20.0
+tokenizers>=0.15.0
