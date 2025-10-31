@@ -8,30 +8,6 @@ from git import Repo
 import glob
 import re
 
-# Add this at the top of your app as a temporary fix
-import subprocess
-import sys
-
-def install_missing_packages():
-    missing_packages = []
-    try:
-        import transformers
-    except ImportError:
-        missing_packages.append("transformers==4.33.0")
-    
-    try:
-        import torch
-    except ImportError:
-        missing_packages.append("torch==2.0.1 --index-url https://download.pytorch.org/whl/cpu")
-    
-    if missing_packages:
-        print(f"Installing missing packages: {missing_packages}")
-        for package in missing_packages:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
-# Call this function (comment out after first run if needed)
-# install_missing_packages()
-
 # --- Bytez SDK Import ---
 try:
     from bytez import Bytez
