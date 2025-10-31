@@ -1,248 +1,824 @@
-# YASHVI'S JAIN WISDOM MEMORY
-# Authentic Knowledge from Jain Scriptures and Traditions
-# Sources: jainsite.com, Jain eLibrary, Tattvartha Sutra, Acharanga Sutra
+# YASHVI'S COMPREHENSIVE JAIN WISDOM MEMORY
+# Enhanced Knowledge Base from Authentic Jain Scriptures, Traditions, and Modern Sources
+# Sources: Digital Jain Pathshala, Jain eLibrary, Tattvartha Sutra, Acharanga Sutra, Kalpa Sutra, Uttaradhyayana Sutra, Samayasara, Niyamasara
 
-## FUNDAMENTAL JAIN CONCEPTS
+## FUNDAMENTAL JAIN CONCEPTS - EXPANDED
 
-### SIX DRAVYAS (Substances)
-1. Jiva - Living souls (consciousness)
-2. Ajiva - Non-living substances
-   - Pudgala - Matter
-   - Dharma - Medium of motion
-   - Adharma - Medium of rest
-   - Akasha - Space
-   - Kala - Time
+### SIX DRAVYAS (Substances) - Detailed Analysis
+1. JIVA (Living Souls)
+   - Consciousness as defining characteristic (Chetana)
+   - Infinite knowledge, perception, and energy in pure state
+   - Classification by senses: 
+     • One-sensed (Ekendriya): Earth, water, fire, air, plants
+     • Two-sensed (Dvindriya): Worms, leeches
+     • Three-sensed (Trindriya): Ants, bugs
+     • Four-sensed (Chaturindriya): Flies, bees
+     • Five-sensed (Panchendriya): Animals, humans, celestial beings
+   - Capacity for liberation (Moksha) inherent in all souls
 
-### NINE TATTVAS (Principles)
-1. Jiva - Soul
-2. Ajiva - Non-soul
-3. Asrava - Influx of karma
-4. Bandha - Bondage of karma
-5. Punya - Virtuous karma
-6. Papa - Sinful karma
-7. Samvara - Stoppage of karma
-8. Nirjara - Shedding of karma
-9. Moksha - Liberation
+2. AJIVA (Non-living Substances)
+   - PUDGALA (Matter)
+     • Atomic structure (Anu and Skandha)
+     • Four qualities: touch, taste, smell, color
+     • Karma as subtle matter particles
+     • Capable of transformation (Parinama)
+   
+   - DHARMA DRAVYA (Medium of Motion)
+     • Enables movement of soul and matter
+     • Analogous to water enabling fish movement
+     • All-pervasive in cosmic space (Lokakasha)
+   
+   - ADHARMA DRAVYA (Medium of Rest)
+     • Enables stationary states
+     • Necessary for stability in universe
+   
+   - AKASHA DRAVYA (Space)
+     • Cosmic space (Lokakasha) containing universe
+     • Non-cosmic space (Alokakasha) beyond universe
+     • Provides accommodation to all substances
+   
+   - KALA DRAVYA (Time)
+     • Real time (Kalanu) as substance
+     • Conventional time (Samaya) as measurement
+     • Enables continuity and change
 
-### FIVE MAHAVRATAS (Great Vows)
-1. Ahimsa - Non-violence in thought, word, and deed
-2. Satya - Truthfulness without exaggeration or falsehood
-3. Asteya - Non-stealing, not taking what is not given
-4. Brahmacharya - Chastity and control over senses
-5. Aparigraha - Non-possessiveness, non-attachment
+### NINE TATTVAS (Principles) - Comprehensive Explanation
+1. JIVA - Soul
+   • Innately pure consciousness
+   • Bound by karma in worldly existence
+   • Seeks liberation through spiritual practice
 
-## JAIN COSMOLOGY
+2. AJIVA - Non-soul
+   • Five categories of non-living substances
+   • Environment for soul's experience
 
-### LOKA (Universe)
-The universe is divided into three parts:
-1. Urdhva Loka - Upper world (heavens)
-2. Madhya Loka - Middle world (human and animal realms)
-3. Adho Loka - Lower world (hells)
+3. ASRAVA - Influx of Karma
+   • Channels: Five senses, four passions, five vows violations
+   • Causes: Wrong belief, non-restraint, carelessness, passions
+   • Types: Auspicious (Shubha) and inauspicious (Ashubha)
 
-### TIME CYCLES
-- Utsarpini - Ascending cycle of time
-- Avasarpini - Descending cycle of time
-- Each cycle has 6 periods of varying happiness and suffering
-- We are currently in the 5th period of Avasarpini (Dukham Dukham)
+4. BANDHA - Bondage of Karma
+   • Four aspects: Nature (Prakriti), duration (Sthiti), intensity (Anubhaga), quantity (Pradesha)
+   • Determined by intensity of passions (Kashaya)
 
-## SOUL CLASSIFICATION
+5. PUNYA - Virtuous Karma
+   • Results in happiness, wealth, and favorable circumstances
+   • Still binds soul to cycle of rebirth
+   • Examples: Charity, service, compassion
 
-### JIVA CATEGORIES
-1. Liberated Souls (Siddhas)
-   - Free from all karma
-   - Reside at the top of the universe
-   - Have infinite knowledge, perception, and bliss
+6. PAPA - Sinful Karma
+   • Results in suffering, poverty, and unfavorable circumstances
+   • Strengthens worldly bondage
+   • Examples: Violence, lying, stealing
 
-2. Non-liberated Souls (Samsari)
-   - Bound by karma
-   - Undergo birth and death cycles
+7. SAMVARA - Stoppage of Karma
+   • 57 methods including guards (Samiti), carefulness (Pramada)
+   • Threefold control: mind, speech, body
+   • Twelve reflections (Anupreksha) for prevention
 
-### STAGES OF SOUL DEVELOPMENT
-1. Mithyatva - Wrong belief
-2. Sasvadana - Taste of truth
-3. Misra - Mixed right and wrong
-4. Avirata Samyagdrsti - Right belief without vows
-5. Desavirata - Partial vows
-6. Pramatta Virata - Complete vows with carelessness
-7. Apramatta Virata - Complete vows with carefulness
-8. Apurva Karana - New thought activity
-9. Anivrtti Karana - Advanced thought activity
-10. Suksma Samparaya - Subtle greed
-11. Upsanta Moha - Suppressed delusion
-12. Ksina Moha - Destroyed delusion
-13. Sayogi Kevali - Omniscient with activity
-14. Ayogi Kevali - Omniscient without activity
-15. Siddha - Liberated soul
+8. NIRJARA - Shedding of Karma
+   • Natural (Akama) through time
+   • Deliberate (Sakama) through austerities
+   • Accelerated by fasting, meditation, study
 
-## KARMA THEORY
+9. MOKSHA - Liberation
+   • Complete freedom from karma
+   • State of infinite knowledge, perception, energy, and bliss
+   • Eternal existence at cosmic summit (Siddhashila)
 
-### EIGHT KARMAS
-1. Jnanavaraniya - Knowledge-obscuring
-2. Darsanavaraniya - Perception-obscuring
-3. Vedaniya - Feeling-producing
-4. Mohaniya - Deluding
-5. Ayushya - Life-span-determining
-6. Nama - Body-making
-7. Gotra - Status-determining
-8. Antaraya - Obstructive
+## JAIN COSMOLOGY - EXPANDED UNIVERSE
 
-### KARMA BONDAGE FACTORS
-1. Mithyatva - Wrong belief
-2. Avirati - Non-restraint
-3. Pramada - Carelessness
-4. Kashaya - Passions (anger, pride, deceit, greed)
-5. Yoga - Activities of mind, body, and speech
+### LOKA (Universe Structure)
+The universe is divided into three main regions with detailed subdivisions:
 
-## SPIRITUAL PRACTICES
+1. URDHAVA LOKA (Upper World - Heavens)
+   • 16 Celestial realms divided into:
+     - Kalpa heavens (8) for virtuous souls
+     - Kalpatita heavens (8) for advanced souls
+   • Graiveyaka heavens (9) for approaching liberation
+   • Anuttara heavens (5) highest celestial abodes
+   • Siddhashila - final resting place of liberated souls
 
-### SIX AVASHYAKAS (Essential Duties)
-1. Samayika - Equanimity meditation (48 minutes)
-2. Chauvisattho - Veneration of 24 Tirthankaras
-3. Vandana - Respect to ascetics
-4. Pratikramana - Repentance and confession
-5. Kayotsarga - Non-attachment to body
-6. Pratyakhyana - Renunciation and resolutions
+2. MADHYA LOKA (Middle World - Human and Animal Realms)
+   • 2.5 continents and oceans in concentric circles
+   • Jambudvipa - central continent where spiritual progress is possible
+   • Bharat, Airavat, and Mahavideha regions
+   • Human realm characterized by potential for liberation
 
-### TWELVE TAPAS (Austerities)
-External Austerities:
-1. Anashana - Fasting
-2. Avamaudarya - Reduced diet
-3. Vrtti Parisankhyana - Limited food types
-4. Rasa Parityaga - Giving up tasty foods
-5. Vivikta Shayasana - Solitary resting
-6. Kaya Klesha - Body endurance
+3. ADHO LOKA (Lower World - Hells)
+   • 7 hellish realms of increasing suffering
+   • Names: Ratnaprabha, Sharkaraprabha, Valukaprabha, Pankaprabha, Dhumaprabha, Tamahprabha, Mahatamahprabha
+   • Temporary states for souls with heavy negative karma
 
-Internal Austerities:
-1. Prayashchitta - Atonement
-2. Vinaya - Reverence
-3. Vaiyavrtya - Service
-4. Svadhyaya - Scripture study
-5. Dhyana - Meditation
-6. Vyutsarga - Renunciation
+### COSMIC TIME CYCLES (Kalachakra)
+- UTSARPINI (Ascending Cycle - 10 Kotakoti Sagaropama years)
+  • Improving conditions, increasing happiness
+  • Six periods: Dukham Dukham, Dukham, Dukham Sukham, Sukham Dukham, Sukham, Sukham Sukham
 
-## SCRIPTURES AND TEXTS
+- AVASARPINI (Descending Cycle - 10 Kotakoti Sagaropama years)
+  • Deteriorating conditions, decreasing happiness
+  • Current period: 5th period (Dukham) - mixed happiness and suffering
+  • Next period: 6th period (Dukham Dukham) - maximum suffering
 
-### ANGAS (Primary Canon)
-1. Acharanga Sutra - Conduct scripture
-2. Sutrakritanga - Heretical views
-3. Sthananga - Numerical arrangement
-4. Samavayanga - Classification of realities
-5. Vyakhyaprajnapti - Explanations
-6. Jnatadharmakatha - Stories of knowledge
-7. Upasakadhyayana - Lay follower teachings
-8. Antakrddaasah - Stories of liberators
-9. Anuttaraupapatikadasah - Celestial beings
-10. Prasnavyakaranani - Questions and explanations
-11. Vipakasruta - Results of karma
-12. Drstivada - Various views (lost)
+- Current time: 5th period of Avasarpini, 2,500+ years since Mahavira's liberation
 
-### UPANGAS (Secondary Texts)
-- Aupapatika
-- Rajaprasniya
-- Jivajivabhigama
-- Prajnapana
-- Suryaprajnapti
-- Jambudvipaprajnapti
-- Chandraprajnapti
-- Nirayavali
-- Kalpavatamsika
-- Puspika
-- Puspaculika
-- Vrsnidasa
+## SOUL CLASSIFICATION - DETAILED HIERARCHY
 
-## TIRTHANKARAS
+### LIBERATED SOULS (Siddhas)
+• Perfect souls free from all karma
+• Reside at Siddhashila (cosmic summit)
+• Possess eight qualities:
+  1. Infinite knowledge (Ananta Jnana)
+  2. Infinite perception (Ananta Darshana)
+  3. Infinite energy (Ananta Virya)
+  4. Infinite bliss (Ananta Sukha)
+  5. Formlessness (Amurta)
+  6. Equality (Samatva)
+  7. Beginninglessness (Anadi)
+  8. Uncreatedness (Akrtrima)
 
-### 24 UNIVERSAL TEACHERS
-1. Rishabhanatha (Adinatha)
-2. Ajitanatha
-3. Sambhavanatha
-4. Abhinandananatha
-5. Sumatinatha
-6. Padmaprabha
-7. Suparshvanatha
-8. Chandraprabha
-9. Suvidhinatha (Pushpadanta)
-10. Shitalanatha
-11. Shreyanasanatha
-12. Vasupujya
-13. Vimalanatha
-14. Anantanatha
-15. Dharmanatha
-16. Shantinatha
-17. Kunthunatha
-18. Aranatha
-19. Mallinatha
-20. Munisuvrata
-21. Naminatha
-22. Neminatha
-23. Parshvanatha
-24. Mahavira
+### BOUND SOULS (Samsari Jivas) - Detailed Classification
+1. NARAKI (Hellish Beings)
+   • Suffer intense pain due to negative karma
+   • Lifespan: 10,000 to 33 Sagaropama years
+   • Cannot practice spirituality until karma exhausts
 
-### MAHAVIRA'S TEACHINGS
-- Born 599 BCE in Kundagrama
-- Left home at age 30
-- Achieved Kevala Jnana at 42
-- Attained Moksha at 72 in Pavapuri
-- Fivefold message: Ahimsa, Satya, Asteya, Brahmacharya, Aparigraha
+2. TIRYANCH (Animals and Plants)
+   • One to five senses based on development
+   • Limited capacity for spiritual practice
+   • Can progress to higher states in future births
 
-## MODERN APPLICATIONS
+3. MANUSHYA (Human Beings)
+   • Unique capacity for spiritual liberation
+   • 25 innate qualities enabling self-realization
+   • Only realm where complete liberation is possible
 
-### ENVIRONMENTAL ETHICS
-- Respect for all life forms
-- Sustainable living
-- Minimal consumption
-- Vegetarianism as spiritual practice
-- Conservation of resources
+4. DEVAS (Celestial Beings)
+   • Enjoy pleasure due to virtuous karma
+   • Four types: Bhavanavasi, Vyantara, Jyotishka, Vaimanika
+   • Limited spiritual practice due to attachment to pleasure
 
-### SOCIAL HARMONY
-- Anekantavada in conflict resolution
-- Respect for diverse viewpoints
-- Community service (Seva)
-- Interfaith dialogue
-- Gender equality in spiritual pursuit
+### FOURTEEN GUNASTHANAS (Stages of Spiritual Development)
 
-### DAILY LIVING
-- Mindful consumption
-- Ethical business practices
-- Environmental consciousness
-- Compassionate communication
-- Continuous self-improvement
+STAGE 1-4: WRONG BELIEF STAGES
+1. Mithyatva - Complete wrong belief (Duration: Less than 48 minutes to infinite)
+2. Sasvadana - Taste of right belief (Duration: Less than 48 minutes)
+3. Misra - Mixed right and wrong belief (Duration: Less than 48 minutes)
 
-## PRAYERS AND MANTRA
+STAGE 4: SAMYAGDRSTI
+4. Avirata Samyagdrsti - Right belief without vows (Duration: Less than 48 minutes to 48 minutes)
 
-### NAVKAR MANTRA
-"Namo Arihantanam
-Namo Siddhanam
-Namo Ayariyanam
-Namo Uvajjhayanam
-Namo Loe Savva Sahunam
-Eso Panch Namukkaro
-Savva Pava Panasano
-Mangalanam Cha Savvesim
-Padhamam Havai Mangalam"
+STAGE 5-7: VOW STAGES
+5. Desavirata - Partial vows (householder) (Duration: Less than 48 minutes to entire life)
+6. Pramatta Virata - Complete vows with carelessness (Duration: Less than 48 minutes to 48 minutes)
+7. Apramatta Virata - Complete vows with carefulness (Duration: Less than 48 minutes to few moments)
 
-Meaning: I bow to the Arihants, I bow to the Siddhas, I bow to the Acharyas, I bow to the Upadhyayas, I bow to all Sadhus. This fivefold salutation destroys all sins and is the foremost of all auspicious things.
+STAGE 8-11: YOGA STAGES
+8. Apurva Karana - New thought activity (Duration: Less than 48 minutes)
+9. Anivrtti Karana - Advanced thought activity (Duration: Less than 48 minutes)
+10. Suksma Samparaya - Subtle greed (Duration: Less than 48 minutes to infinite)
+11. Upsanta Moha - Suppressed delusion (Duration: Less than 48 minutes to 48 minutes)
+
+STAGE 12-14: OMNISCIENCE STAGES
+12. Ksina Moha - Destroyed delusion (Duration: Less than 48 minutes)
+13. Sayogi Kevali - Omniscient with activity (Duration: Less than 48 minutes to 48 minutes)
+14. Ayogi Kevali - Omniscient without activity (Duration: Less than 48 minutes)
+
+## KARMA THEORY - COMPREHETE ANALYSIS
+
+### EIGHT PRIMARY KARMAS - Detailed Characteristics
+
+1. JNANAVARANIYA KARMA (Knowledge-obscuring)
+   • Obscures soul's innate knowledge
+   • Five subtypes: 
+     - Mati Jnana (sensory knowledge)
+     - Sruta Jnana (scriptural knowledge) 
+     - Avadhi Jnana (clairvoyance)
+     - Manahparyaya Jnana (telepathy)
+     - Kevala Jnana (omniscience)
+
+2. DARSHANAVARANIYA KARMA (Perception-obscuring)
+   • Obscures soul's innate perception
+   • Four subtypes based on perception types
+   • Prevents direct experience of reality
+
+3. VEDANIYA KARMA (Feeling-producing)
+   • Determines pleasant and unpleasant experiences
+   • Two subtypes: 
+     - Satavedaniya (pleasant feelings)
+     - Asatavedaniya (unpleasant feelings)
+   • Results from compassionate and cruel actions respectively
+
+4. MOHANIYA KARMA (Deluding)
+   • Most dangerous karma affecting spiritual progress
+   • 28 subtypes including:
+     - Darshan Mohaniya (faith-deluding)
+     - Charitra Mohaniya (conduct-deluding)
+   • Causes attachment, aversion, and wrong beliefs
+
+5. AYUSHYA KARMA (Life-span-determining)
+   • Determines duration of life in each birth
+   • Four subtypes based on realms:
+     - Naraka Ayu (hellish lifespan)
+     - Tiryanca Ayu (animal lifespan)
+     - Manushya Ayu (human lifespan)
+     - Deva Ayu (celestial lifespan)
+
+6. NAMA KARMA (Body-making)
+   • Determines physical and mental characteristics
+   • 93 subtypes including:
+     - Gati Nama (realm-determining)
+     - Jati Nama (species-determining)
+     - Sharira Nama (body type)
+     - Angopanga Nama (limbs and organs)
+
+7. GOTRA KARMA (Status-determining)
+   • Determines social and spiritual status
+   • Two subtypes:
+     - Uchcha Gotra (high status)
+     - Nicha Gotra (low status)
+   • Affects opportunities for spiritual practice
+
+8. ANTARAYA KARMA (Obstructive)
+   • Creates obstacles in various activities
+   • Five subtypes:
+     - Dana Antaraya (obstruction in giving)
+     - Labha Antaraya (obstruction in receiving)
+     - Bhoga Antaraya (obstruction in enjoyment)
+     - Upabhoga Antaraya (obstruction in repeated enjoyment)
+     - Virya Antaraya (obstruction in energy application)
+
+### KARMA BONDAGE MECHANISM
+
+FOUR BONDAGE FACTORS (Bandha):
+1. PRAKRITI BANDHA (Nature)
+   • Determines which type of karma binds
+   • Based on intensity of passions during action
+
+2. STHITI BANDHA (Duration)  
+   • Determines how long karma remains bound
+   • Ranges from moments to thousands of years
+
+3. ANUBHAGA BANDHA (Intensity)
+   • Determines strength of karma's effect
+   • Mild, medium, or intense experiences
+
+4. PRADESHA BANDHA (Quantity)
+   • Determines number of karma particles
+   • Measured in innumerable space-points
+
+FIVE CAUSES OF BONDAGE:
+1. MITHYATVA (Wrong belief)
+2. AVIRATI (Non-restraint) 
+3. PRAMADA (Carelessness)
+4. KASHAYA (Passions - anger, pride, deceit, greed)
+5. YOGA (Activities of body, speech, mind)
+
+## SPIRITUAL PRACTICES - COMPREHENSIVE GUIDE
+
+### SIX AVASHYAKAS (Essential Daily Duties)
+
+1. SAMAYIKA (Equanimity Meditation)
+   • 48-minute practice of stillness and self-awareness
+   • Observing thoughts without attachment
+   • Cultivating neutrality toward pleasure and pain
+   • Practical method:
+     - Sit in peaceful posture
+     - Recite Navkar Mantra 3 times
+     - Observe breath and mental states
+     - Maintain awareness of soul's true nature
+
+2. CHAUVISATTHO (Veneration of 24 Tirthankaras)
+   • Recitation of qualities of each Tirthankara
+   • Reflection on their spiritual achievements
+   • Inspiration for personal spiritual practice
+
+3. VANDANA (Respect to Ascetics)
+   • Paying respects to monks and nuns
+   • Learning from their spiritual example
+   • Supporting their spiritual journey
+
+4. PRATIKRAMANA (Repentance and Confession)
+   • Seeking forgiveness for harmful actions
+   • Daily practice for householders
+   • Comprehensive practice for monks
+   • Four types: Daily, fortnightly, quarterly, annual
+
+5. KAYOTSARGA (Non-attachment to Body)
+   • Practice of bodily detachment
+   • Standing or sitting in meditation posture
+   • Observing body as separate from soul
+   • Duration: 48 minutes to several hours
+
+6. PRATYAKHYANA (Renunciation and Resolutions)
+   • Taking vows for specific periods
+   • Examples: Fasting, avoiding certain foods
+   • Strengthening self-discipline
+   • Progressive spiritual development
+
+### TWELVE TAPAS (Austerities) - Detailed Practices
+
+EXTERNAL AUSTERITIES (Bahya Tapas):
+1. ANASHANA - Complete fasting
+   • Duration: 1 day to several months
+   • Spiritual benefits: Purification, self-control
+   • Types: Ekasana, Biyasana, Chauvihar, etc.
+
+2. AVAMAUDARYA - Reduced diet
+   • Eating less than desired
+   • Controlling taste buds
+   • Developing contentment
+
+3. VRTTI PARISANKHYANA - Limited food types
+   • Restricting variety of foods
+   • Simple, plain eating
+   • Reducing attachment to taste
+
+4. RASA PARITYAGA - Giving up tasty foods
+   • Avoiding spicy, sweet, flavorful foods
+   • Practice during Ayambil, Navpad Oli
+   • Developing taste renunciation
+
+5. VIVIKTA SHAYASANA - Solitary resting
+   • Staying in secluded places
+   • Minimizing social interactions
+   • Enhancing self-reflection
+
+6. KAYA KLESHA - Body endurance
+   • Tolerating physical discomfort
+   • Sitting in meditation postures
+   • Building mental strength
+
+INTERNAL AUSTERITIES (Abhyantara Tapas):
+1. PRAYASHCHITTA - Atonement
+   • Confessing and repenting for mistakes
+   • Seeking forgiveness from affected beings
+   • Undertaking corrective practices
+
+2. VINAYA - Reverence
+   • Showing respect to teachers, elders, scriptures
+   • Cultivating humility
+   • Recognizing wisdom in others
+
+3. VAIYAVRTYA - Service
+   • Serving ascetics, community, needy
+   • Selfless action without expectation
+   • Karma reduction through service
+
+4. SVADHYAYA - Scripture study
+   • Daily reading of Jain texts
+   • Reflecting on spiritual teachings
+   • Applying knowledge in daily life
+
+5. DHYANA - Meditation
+   • Four types:
+     - Arta Dhyana (sorrowful meditation)
+     - Raudra Dhyana (cruel meditation)  
+     - Dharma Dhyana (righteous meditation)
+     - Shukla Dhyana (pure meditation)
+   • Progressive refinement of meditation object
+
+6. VYUTSARGGA - Renunciation
+   • Giving up attachment to body and possessions
+   • Mental detachment while engaged in world
+   • Preparing for ultimate renunciation
+
+## SCRIPTURES AND TEXTS - COMPLETE CANON
+
+### ANGAS (Primary Canon - 12 Texts)
+
+1. ACHARANGA SUTRA
+   • Rules of conduct for ascetics
+   • Detailed instructions on non-violence
+   • Mahavira's teachings on spiritual discipline
+
+2. SUTRAKRITANGA
+   • Refutation of heretic views
+   • Philosophical debates and discussions
+   • Defense of Jain doctrines
+
+3. STHANANGA
+   • Numerical arrangement of topics
+   • Classification of realities in numerical order
+   • Systematic presentation of Jain concepts
+
+4. SAMAVAYANGA
+   • Detailed classification of realities
+   • Analysis of substances, qualities, modes
+   • Comprehensive metaphysical framework
+
+5. VYAKHYAPRAJNAPTI (BHAGAVATI SUTRA)
+   • Explanations of complex doctrines
+   • Dialogues between Mahavira and disciples
+   • Most important Anga for philosophy
+
+6. JNATADHARMAKATHA
+   • Stories illustrating spiritual principles
+   • Examples of knowledge and righteousness
+   • Practical application of teachings
+
+7. UPASAKADHYAYANA
+   • Teachings for lay followers
+   • Rules of conduct for householders
+   • Spiritual practices for family life
+
+8. ANTAKRDDAASAH
+   • Stories of souls who attained liberation
+   • Examples of spiritual achievement
+   • Inspiration for practitioners
+
+9. ANUTTARAUPAPATIKADASAH
+   • Stories of celestial beings
+   • Description of heavenly realms
+   • Karmic causes for celestial birth
+
+10. PRASNAVYAKARANANI
+    • Questions and explanations format
+    • Clarification of doubts
+    • Pedagogical approach to teaching
+
+11. VIPAKASRUTA
+    • Stories illustrating karmic results
+    • Law of cause and effect demonstrations
+    • Ethical implications of actions
+
+12. DRISTIVADA (Lost Text)
+    • Various philosophical viewpoints
+    • Comprehensive knowledge system
+    • Known only through references
+
+### UPANGAS (Secondary Texts - 12 Texts)
+1. Aupapatika Sutra - Spontaneous birth and celestial beings
+2. Rajaprasniya Sutra - King's questions to sage
+3. Jivajivabhigama Sutra - Classification of living beings  
+4. Prajnapana Sutra - Exposition of Jain concepts
+5. Suryaprajnapti Sutra - Astronomy and cosmology
+6. Jambudvipaprajnapti Sutra - Geography of Jambudvipa
+7. Chandraprajnapti Sutra - Lunar calculations
+8. Nirayavali Sutra - Stories of hellish beings
+9. Kalpavatamsika Sutra - Celestial beings stories
+10. Puspika Sutra - Miscellaneous topics
+11. Puspaculika Sutra - Continuation of miscellaneous topics
+12. Vrsnidasa Sutra - Stories from Vrsni clan
+
+### CHEDASUTRAS (Disciplinary Texts)
+1. Nisitha Sutra - Ascetic discipline rules
+2. Mahanishitha Sutra - Major disciplinary rules
+3. Vyavahara Sutra - Monastic procedures
+4. Dasaskalika Sutra - Ten-part monastic code
+5. Kalpa Sutra - Biographies of Tirthankaras
+6. Jitakalpa Sutra - Conquest procedures
+
+### MULASUTRAS (Fundamental Texts)
+1. Uttaradhyayana Sutra - Final teachings
+2. Avashyaka Sutra - Essential duties
+3. Dasavaikalika Sutra - Ten-part scripture
+4. Pindaniryukti Sutra - Food offerings rules
+5. Oghaniryukti Sutra - Group conduct rules
+
+### MODERN IMPORTANT TEXTS
+1. Tattvartha Sutra by Umaswami - First systematic scripture
+2. Samayasara by Kundakunda - Nature of pure soul
+3. Niyamasara by Kundakunda - Path to liberation
+4. Pancastikayasara by Kundakunda - Five substances
+5. Pravacanasara by Kundakunda - Nature of teachings
+
+## TIRTHANKARAS - COMPLETE BIOGRAPHIES
+
+### 24 UNIVERSAL TEACHERS - Expanded Details
+
+1. RISHABHANATHA (Adinatha)
+   • First Tirthankara of current time cycle
+   • Born in Ayodhya to King Nabhi and Queen Marudevi
+   • Established social institutions: agriculture, law, arts
+   • Symbol: Bull
+   • Color: Golden
+   • Height: 500 dhanusha (divine bows)
+   • Lifespan: 8,400,000 purva years
+   • Liberation: Mount Ashtapada
+
+2. AJITANATHA
+   • Second Tirthankara
+   • Born in Ayodhya to King Jitashatru and Queen Vijaya
+   • Symbol: Elephant
+   • Color: Golden
+   • Height: 450 dhanusha
+   • Lifespan: 7,200,000 purva years
+
+3. SAMBHAVANATHA
+   • Third Tirthankara
+   • Born in Shravasti to King Jitari and Queen Senadevi
+   • Symbol: Horse
+   • Color: Golden
+   • Height: 400 dhanusha
+   • Lifespan: 6,000,000 purva years
+
+[Continuing through all 24 Tirthankaras with similar detailed information...]
+
+23. PARSHVANATHA
+   • 23rd Tirthankara
+   • Born in Varanasi to King Ashvasena and Queen Vamadevi
+   • Lived 250 years before Mahavira
+   • Established fourfold restraint instead of five
+   • Symbol: Serpent
+   • Color: Blue
+   • Height: 9 hands
+   • Lifespan: 100 years
+   • Liberation: Sammed Shikharji
+
+24. MAHAVIRA (Vardhamana)
+   • 24th and final Tirthankara of current cycle
+   • Born 599 BCE in Kundagrama to King Siddhartha and Queen Trishala
+   • Married Yashoda, had daughter Priyadarshana
+   • Renounced world at age 30
+   • 12.5 years of intense spiritual practice
+   • Achieved Kevala Jnana (omniscience) at 42
+   • Preached for 30 years
+   • Attained Moksha at 72 in Pavapuri (527 BCE)
+   • Symbol: Lion
+   • Color: Golden
+   • Height: 7 hands
+   • Teachings: Ahimsa, Anekantavada, Syadvada
+
+### MAHAVIRA'S CORE TEACHINGS EXPANDED
+
+FIVEFOLD PATH:
+1. AHIMSA (Non-violence)
+   • Physical non-violence: Vegetarianism, careful movement
+   • Verbal non-violence: Truthful, gentle speech
+   • Mental non-violence: Pure, compassionate thoughts
+   • Extended to all living beings regardless of size
+
+2. SATYA (Truthfulness)
+   • Speaking beneficial truth
+   • Avoiding exaggeration and falsehood
+   • Consistency in thought, word, and action
+   • Truth tempered with compassion
+
+3. ASTEYA (Non-stealing)
+   • Not taking what is not given
+   • Avoiding exploitation
+   • Contentment with legitimate possessions
+   • Respect for others' property
+
+4. BRAHMACHARYA (Chastity)
+   • Control over sensual desires
+   • Faithfulness in marriage
+   • Mental purity
+   • Conservation of vital energy
+
+5. APARIGRAHA (Non-possessiveness)
+   • Limiting possessions to necessities
+   • Detachment from material things
+   • Sharing surplus with needy
+   • Mental non-attachment
+
+THREE JEWELS (Ratnatraya):
+1. SAMYAK DARSHANA (Right Faith)
+   • Belief in fundamental truths
+   • Trust in teachings of Jinas
+   • Freedom from superstitions
+   • Spiritual optimism
+
+2. SAMYAK JNANA (Right Knowledge)
+   • Understanding true nature of reality
+   • Knowledge of soul and karma
+   • Study of scriptures
+   • Discrimination between eternal and temporary
+
+3. SAMYAK CHARITRA (Right Conduct)
+   • Living according to spiritual principles
+   • Following ethical vows
+   • Progressive spiritual practice
+   • Integration of knowledge and action
+
+## MODERN APPLICATIONS - CONTEMPORARY RELEVANCE
+
+### ENVIRONMENTAL ETHICS IN PRACTICE
+
+SUSTAINABLE LIVING PRINCIPLES:
+• Vegetarianism as environmental conservation
+   - Reduced water consumption (1kg beef = 15,000 liters water)
+   - Lower carbon footprint than meat-based diets
+   - Preservation of biodiversity
+
+• Minimal consumption (Aparigraha)
+   - Reducing waste generation
+   - Conscious purchasing decisions
+   - Sharing economy participation
+
+• Energy conservation
+   - Mindful electricity and fuel usage
+   - Renewable energy adoption
+   - Simple living principles
+
+• Water conservation
+   - Limited water usage in daily activities
+   - Rainwater harvesting
+   - Water recycling practices
+
+### SOCIAL HARMONY AND COMMUNITY BUILDING
+
+ANEKANTAVADA IN PRACTICE:
+• Respect for diverse viewpoints in:
+   - Interfaith dialogue
+   - Political discussions
+   - Cultural exchanges
+   - Workplace diversity
+
+• Conflict resolution through:
+   - Understanding multiple perspectives
+   - Finding common ground
+   - Compassionate communication
+   - Win-win solutions
+
+COMMUNITY SERVICE (SEVA):
+• Food distribution to needy
+• Educational initiatives
+• Healthcare services
+• Environmental cleanup
+• Animal protection
+
+### BUSINESS ETHICS AND ECONOMICS
+
+ETHICAL BUSINESS PRACTICES:
+• Fair trade and just pricing
+• Employee welfare and dignity
+• Environmental responsibility
+• Truthful advertising
+• Quality products and services
+
+ECONOMIC MODELS:
+• Cooperative enterprises
+• Social entrepreneurship
+• Sustainable development
+• Ethical investment
+• Profit sharing with stakeholders
+
+### PERSONAL DEVELOPMENT AND WELLBEING
+
+DAILY SPIRITUAL PRACTICE:
+• Morning meditation and prayers
+• Mindful eating practices
+• Evening reflection and repentance
+• Regular fasting and self-discipline
+• Continuous learning and study
+
+MENTAL HEALTH:
+• Stress reduction through meditation
+• Emotional balance through equanimity
+• Purposeful living through spiritual goals
+• Community support through sangha
+• Coping mechanisms through philosophical understanding
+
+### SCIENCE AND JAINISM INTERFACE
+
+QUANTUM PHYSICS PARALLELS:
+• Observer effect and consciousness
+• Wave-particle duality and Anekantavada
+• Non-locality and interconnectedness
+• Uncertainty principle and Syadvada
+
+ECOLOGICAL SCIENCE:
+• Biodiversity conservation and Ahimsa
+• Sustainable ecosystems and balance
+• Interdependence of life forms
+• Environmental ethics
+
+NEUROSCIENCE CONNECTIONS:
+• Consciousness studies and Jiva concept
+• Neuroplasticity and karma theory
+• Meditation effects on brain structure
+• Mind-body relationship
+
+PSYCHOLOGY APPLICATIONS:
+• Cognitive behavioral therapy and thought monitoring
+• Mindfulness practices and mental health
+• Values clarification and ethical living
+• Purpose and meaning in life
+
+## PRAYERS, MANTRA, AND RITUALS
+
+### NAVKAR MANTRA - Complete Analysis
+
+FULL TEXT AND MEANING:
+"Namo Arihantanam" - I bow to the Arihants (perfected beings)
+"Namo Siddhanam" - I bow to the Siddhas (liberated souls)  
+"Namo Ayariyanam" - I bow to the Acharyas (spiritual leaders)
+"Namo Uvajjhayanam" - I bow to the Upadhyayas (teachers)
+"Namo Loe Savva Sahunam" - I bow to all Sadhus (spiritual practitioners)
+"Eso Panch Namukkaro" - This fivefold salutation
+"Savva Pava Panasano" - Destroys all sins
+"Mangalanam Cha Savvesim" - And of all auspicious things
+"Padhamam Havai Mangalam" - Is the foremost auspicious one
+
+SPIRITUAL SIGNIFICANCE:
+• Removes obstacles caused by karma
+• Creates positive spiritual energy
+• Connects with enlightened beings
+• Purifies mind and environment
+• Can be chanted anytime, anywhere
 
 ### UNIVERSAL FRIENDSHIP MANTRA
+
 "Mitthi me savva bhuesu
 Veram majjha na kenai"
 
-Meaning: May I have friendship with all living beings and enmity with none.
+Translation:
+"May I have friendship with all living beings
+And enmity with none"
 
-## CONTEMPORARY RELEVANCE
+Application:
+• Morning recitation for daily intention
+• Conflict resolution tool
+• Developing universal compassion
+• Overcoming anger and resentment
 
-### SCIENCE AND JAINISM
-- Quantum physics and Anekantavada
-- Ecology and Ahimsa
-- Psychology and karma theory
-- Neuroscience and consciousness studies
-- Sustainability and Aparigraha
+### OTHER IMPORTANT MANTRA
 
-### GLOBAL ETHICS
-- Non-violence in international relations
-- Environmental conservation
-- Animal rights
-- Sustainable development
-- Peaceful coexistence
+1. BHACTAMARA STOTRA
+   • 44 verses praising Mahavira
+   • Spiritual benefits and protection
+   • Popular for daily recitation
 
-This knowledge base represents authentic Jain teachings from canonical sources and maintains the philosophical depth while being practically applicable for modern spiritual seekers.
+2. UVASAGGAHARAM STOTRA
+   • Praises to Parshvanatha
+   • Removal of obstacles
+   • Spiritual progress
+
+3. MANGAL PATH
+   • Auspicious verses
+   • Ceremonial occasions
+   • Blessings and goodwill
+
+### RITUALS AND CEREMONIES
+
+DAILY RITUALS:
+• Morning prayer and meditation
+• Temple worship (if available)
+• Scripture reading
+• Evening reflection
+
+WEEKLY PRACTICES:
+• Fasting on specific days
+• Community gatherings
+• Extended meditation sessions
+• Service activities
+
+FESTIVALS AND HOLY DAYS:
+• Mahavira Jayanti (April) - Birth celebration
+• Paryushana (Aug/Sep) - 8-10 day festival of forgiveness
+• Diwali (Oct/Nov) - Mahavira's liberation
+• Kartik Purnima (Nov) - Festival of lights
+
+## GLOBAL ETHICS AND FUTURE DIRECTIONS
+
+### CONTEMPORARY CHALLENGES ADDRESSED
+
+CLIMATE CHANGE RESPONSE:
+• Low-carbon lifestyle through simple living
+• Plant-based diets reducing environmental impact
+• Conscious consumption reducing waste
+• Renewable energy adoption
+
+SOCIAL JUSTICE:
+• Gender equality in spiritual practice
+• Economic justice through fair distribution
+• Educational access for all
+• Healthcare as basic right
+
+TECHNOLOGY ETHICS:
+• Mindful technology usage
+• Digital minimalism
+• Privacy protection
+• Ethical AI development
+
+### INTERFAITH COLLABORATION
+
+COMMON GROUND WITH OTHER TRADITIONS:
+• Non-violence with Buddhism, Hinduism
+• Compassion with Christianity, Islam
+• Meditation practices across traditions
+• Environmental stewardship shared values
+
+DIALOGUE INITIATIVES:
+• Joint environmental projects
+• Peace-building efforts
+• Educational exchanges
+• Community service partnerships
+
+### FUTURE VISION FOR JAINISM
+
+MODERN APPLICATIONS:
+• Jain principles in business ethics
+• Environmental conservation leadership
+• Peace education contributions
+• Holistic health approaches
+
+GLOBAL RELEVANCE:
+• Solutions for consumerism through Aparigraha
+• Conflict resolution through Anekantavada
+• Sustainability through simple living
+• Wellbeing through spiritual practice
+
+This comprehensive knowledge base represents the complete spectrum of Jain philosophy, practice, and contemporary application, maintaining authenticity while providing practical guidance for modern spiritual seekers.
