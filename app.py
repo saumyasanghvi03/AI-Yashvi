@@ -4,27 +4,8 @@ import pytz
 import tempfile
 import os
 import shutil
-from git import Repo
 import glob
 import re
-
-# --- Bytez SDK Import ---
-try:
-    from bytez import Bytez
-    BYTEZ_AVAILABLE = True
-except ImportError:
-    st.error("Bytez package not installed. Please install it with: pip install bytez")
-    BYTEZ_AVAILABLE = False
-
-# --- Hugging Face Fallback Imports ---
-try:
-    from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
-    from transformers import GenerationConfig
-    import torch
-    HF_AVAILABLE = True
-except ImportError:
-    st.warning("Hugging Face transformers not available. Install with: pip install transformers torch accelerate")
-    HF_AVAILABLE = False
 
 # --- Configuration ---
 st.set_page_config(
@@ -36,9 +17,6 @@ st.set_page_config(
 
 # --- Hard-coded Repo URL ---
 REPO_URL = "https://github.com/saumyasanghvi03/AI-Yashvi/"
-
-# --- Bytez Configuration ---
-BYTEZ_API_KEY = "90d252f09c55cacf3dcc914b5bb4ac01"
 
 # --- Rate Limiting Logic ---
 IST = pytz.timezone('Asia/Kolkata')
@@ -377,14 +355,58 @@ def get_remaining_questions():
         return "∞ (Admin Mode)"
     return DAILY_QUESTION_LIMIT - st.session_state.question_count
 
-# --- UPGRADE: Cached Functions ---
-@st.cache_resource
-def cached_initialize_ai_models():
+def check_dependencies():
+    """Check and report on required dependencies."""
+    dependencies = {
+        "git": "GitPython for repository access",
+        "pytz": "pytz for timezone handling",
+        "streamlit": "Streamlit for web interface"
+    }
+    
+    missing_deps = []
+    available_deps = []
+    
+    # Check basic dependencies
+    try:
+        from git import Repo
+        available_deps.append("✓ GitPython")
+    except ImportError:
+        missing_deps.append("GitPython (pip install GitPython)")
+    
+    try:
+        import pytz
+        available_deps.append("✓ pytz")
+    except ImportError:
+        missing_deps.append("pytz (pip install pytz)")
+    
+    # Check optional AI dependencies
+    ai_deps_status = []
+    
+    # Bytez SDK
+    try:
+        from bytez import Bytez
+        ai_deps_status.append("✓ Bytez SDK")
+    except ImportError:
+        ai_deps_status.append("✗ Bytez SDK (optional)")
+    
+    # Hugging Face
+    try:
+        from transformers import pipeline
+        import torch
+        ai_deps_status.append("✓ Hugging Face Transformers")
+    except ImportError:
+        ai_deps_status.append("✗ Hugging Face Transformers (optional)")
+    
+    return available_deps, missing_deps, ai_deps_status
+
+def initialize_ai_models():
     """Initialize AI models with fallback hierarchy."""
     models = {}
     
     # Try Bytez models first
-    if BYTEZ_AVAILABLE:
+    try:
+        from bytez import Bytez
+        BYTEZ_API_KEY = "90d252f09c55cacf3dcc914b5bb4ac01"
         try:
             sdk = Bytez(BYTEZ_API_KEY)
             # Try Qwen model first
@@ -397,163 +419,103 @@ def cached_initialize_ai_models():
                     models['bytez_gemma'] = sdk.model("google/gemma-3-4b-it")
                     st.success("✓ Bytez Gemma model loaded")
                 except Exception as gemma_error:
-                    st.warning("Bytez models unavailable, using Hugging Face fallback")
+                    st.warning("Bytez models unavailable")
         except Exception as e:
             st.warning(f"Bytez SDK initialization failed: {e}")
+    except ImportError:
+        st.info("Bytez package not available - using fallback mode")
     
     # Hugging Face fallback models
-    if HF_AVAILABLE and not models:  # Only load HF if Bytez failed
-        try:
-            # Load a small, efficient model for chat
-            st.info("Loading Hugging Face fallback model...")
-            
-            # Option 1: Try a small instruct model first
+    try:
+        from transformers import pipeline
+        import torch
+        
+        if not models:  # Only load HF if Bytez failed
             try:
-                models['hf_chat'] = pipeline(
-                    "text-generation",
-                    model="microsoft/DialoGPT-medium",
-                    torch_dtype=torch.float16,
-                    device_map="auto" if torch.cuda.is_available() else None,
-                    max_length=1024
-                )
-                st.success("✓ Hugging Face DialoGPT model loaded")
-            except Exception as dialo_error:
-                # Option 2: Fallback to a distilled model
+                # Load a small, efficient model for chat
+                st.info("Loading Hugging Face fallback model...")
+                
+                # Try a small instruct model first
                 try:
                     models['hf_chat'] = pipeline(
-                        "text-generation", 
-                        model="distilgpt2",
+                        "text-generation",
+                        model="microsoft/DialoGPT-medium",
                         torch_dtype=torch.float16,
-                        device_map="auto" if torch.cuda.is_available() else None,
+                        device_map="auto",
                         max_length=1024
                     )
-                    st.success("✓ Hugging Face DistilGPT2 model loaded")
-                except Exception as distil_error:
-                    st.error("All AI models failed to load")
-        
-        except Exception as e:
-            st.error(f"Hugging Face model loading failed: {e}")
+                    st.success("✓ Hugging Face DialoGPT model loaded")
+                except Exception as dialo_error:
+                    # Fallback to a distilled model
+                    try:
+                        models['hf_chat'] = pipeline(
+                            "text-generation", 
+                            model="distilgpt2",
+                            max_length=1024
+                        )
+                        st.success("✓ Hugging Face DistilGPT2 model loaded")
+                    except Exception as distil_error:
+                        st.info("All AI models unavailable - using quick questions only")
+            except Exception as e:
+                st.info(f"Hugging Face models unavailable: {e}")
+    except ImportError:
+        st.info("Transformers package not available - AI features disabled")
     
     return models
 
-@st.cache_resource
-def cached_load_repo_content():
+def load_repo_content():
     """
-    Clones the GitHub repo and loads text files.
-    Returns a list of documents with metadata.
+    Loads content from the GitHub repo with fallback to local files.
     """
     try:
-        with st.spinner("Loading knowledge base (one-time setup)..."):
+        # Try to import GitPython
+        from git import Repo
+        
+        with st.spinner("Loading knowledge base from GitHub..."):
             with tempfile.TemporaryDirectory() as temp_dir:
-                Repo.clone_from(REPO_URL, temp_dir)
-                
-                # Find all text files
-                documents = []
-                
-                # Define file patterns to search for
-                patterns = ['**/*.txt', '**/*.md', '**/*.py', '**/*.rst', '**/*.json', '**/*.yaml', '**/*.yml']
-                
-                for pattern in patterns:
-                    for file_path in glob.glob(os.path.join(temp_dir, pattern), recursive=True):
-                        try:
-                            # Skip hidden files and directories
-                            if os.path.basename(file_path).startswith('.'):
-                                continue
-                                
-                            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                                content = f.read()
-                                if content.strip():  # Only add non-empty files
-                                    # Get relative path for display
-                                    rel_path = os.path.relpath(file_path, temp_dir)
-                                    documents.append({
-                                        'source': rel_path,
-                                        'content': content,
-                                        'file_size': len(content)
-                                    })
-                        except Exception:
-                            continue  # Skip files that can't be read
+                try:
+                    Repo.clone_from(REPO_URL, temp_dir)
+                    
+                    # Find all text files
+                    documents = []
+                    
+                    # Define file patterns to search for
+                    patterns = ['**/*.txt', '**/*.md', '**/*.py', '**/*.rst', '**/*.json', '**/*.yaml', '**/*.yml']
+                    
+                    for pattern in patterns:
+                        for file_path in glob.glob(os.path.join(temp_dir, pattern), recursive=True):
+                            try:
+                                # Skip hidden files and directories
+                                if os.path.basename(file_path).startswith('.'):
+                                    continue
+                                    
+                                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                                    content = f.read()
+                                    if content.strip():  # Only add non-empty files
+                                        # Get relative path for display
+                                        rel_path = os.path.relpath(file_path, temp_dir)
+                                        documents.append({
+                                            'source': rel_path,
+                                            'content': content,
+                                            'file_size': len(content)
+                                        })
+                            except Exception:
+                                continue  # Skip files that can't be read
 
-                if not documents:
-                    st.error("No compatible documents found in this repository.")
-                    return None
-                
-                st.success("✓ Knowledge base loaded")
-                return documents
+                    if not documents:
+                        st.error("No compatible documents found in this repository.")
+                        return None
 
-    except Exception as e:
-        st.error(f"Error loading repository: {e}")
-        return None
-# --- END UPGRADE ---
+                    st.success("✓ Knowledge base loaded from GitHub")
+                    return documents
 
-def call_ai_model(models, messages):
-    """
-    Calls available AI models with fallback hierarchy.
-    Returns response and any error.
-    """
-    system_prompt = None
-    user_question = None
-    
-    # Extract system prompt and user question from messages
-    for msg in messages:
-        if msg["role"] == "system":
-            system_prompt = msg["content"]
-        elif msg["role"] == "user":
-            user_question = msg["content"]
-    
-    if not user_question:
-        return "No question provided.", "No user question"
-    
-    full_prompt = f"{system_prompt}\n\nAnswer:"
-    
-    # Try Bytez models first
-    if 'bytez_qwen' in models:
-        try:
-            output, error = models['bytez_qwen'].run(full_prompt)
-            if not error:
-                return output, None
-        except Exception as e:
-            st.warning(f"Bytez Qwen failed: {e}")
-    
-    if 'bytez_gemma' in models:
-        try:
-            output, error = models['bytez_gemma'].run(full_prompt)
-            if not error:
-                return output, None
-        except Exception as e:
-            st.warning(f"Bytez Gemma failed: {e}")
-    
-    # Hugging Face fallback
-    if 'hf_chat' in models:
-        try:
-            # For DialoGPT or similar models
-            if hasattr(models['hf_chat'], 'tokenizer'):
-                # This is a pipeline
-                response = models['hf_chat'](
-                    full_prompt,
-                    max_new_tokens=500,
-                    do_sample=True,
-                    temperature=0.7,
-                    pad_token_id=models['hf_chat'].tokenizer.eos_token_id,
-                    repetition_penalty=1.1
-                )
-                if isinstance(response, list) and len(response) > 0:
-                    generated_text = response[0]['generated_text']
-                    # Extract only the new generated part
-                    if generated_text.startswith(full_prompt):
-                        answer = generated_text[len(full_prompt):].strip()
-                    else:
-                        answer = generated_text
-                    return answer, None
-            else:
-                # Handle other model types
-                return "Hugging Face model available but specific handling not implemented.", "Model handling error"
-                
-        except Exception as e:
-            error_msg = f"Hugging Face model error: {str(e)}"
-            st.error(error_msg)
-            return None, error_msg
-    
-    return None, "All AI models failed"
+                except Exception as e:
+                    st.warning(f"GitHub repository unavailable: {e}")
+                    return []
+                    
+    except ImportError:
+        st.warning("GitPython not available - using built-in knowledge only")
+        return []
 
 def search_in_repo(query, documents, max_results=5):
     """Enhanced keyword search in repository documents."""
@@ -766,108 +728,142 @@ IMPORTANT JAIN CONCEPTS TO REFERENCE WHEN RELEVANT:
     return sources_context
 
 def get_fallback_response(question):
-    """Ultimate fallback when all AI models fail."""
-    question_lower = question.lower()
+    """Improved fallback when all AI models fail with better question matching."""
+    question_lower = question.lower().strip()
     
-    # --- BUG FIX ---
-    # The original logic was matching any word from the question_data,
-    # causing "What is Jainism?" to match "What is the Navkar Mantra?".
-    # The new logic checks if the *primary topic word* from the key 
-    # (e.g., "jainism", "navkar", "ahimsa") is in the user's question.
-    
-    # Try matching based on the primary topic word in the dictionary key
-    for key, data in QUICK_QUESTIONS_DATABASE.items():
-        # Get the main topic from the key (e.g., "jainism" from "jainism_basics")
-        topic_word = key.split('_')[0]
-        
-        if topic_word in question_lower:
-            # Special case: 'three' is too general, check for 'three jewels'
-            if topic_word == 'three' and 'jewels' not in question_lower:
-                continue
-            return data['answer']
-    # --- END OF BUG FIX ---
-
-    # --- REPAIR: Check WHY we are falling back ---
-    # If no AI models were loaded at all, show a specific error.
-    if not st.session_state.ai_models:
-        specific_error_message_eng = """**મુખ્ય વિચાર / Main Concept**
-• The AI models are not available.
-
-**મુખ્ય મુદ્દાઓ / Key Points**
-• This app requires installing Python packages to function.
-• The `bytez` and `transformers` packages could not be found.
-
-**વ્યવહારુ સલાહ / Practical Advice**
-• If you are running this locally, please install the dependencies:
-• `pip install bytez transformers torch accelerate`
-
-**સારાંશ / Summary**
-• AI features are disabled. Using pre-written answers only."""
-        
-        specific_error_message_guj = """**મુખ્ય વિચાર / Main Concept**
-• AI મોડલ ઉપલબ્ધ નથી.
-
-**મુખ્ય મુદ્દાઓ / Key Points**
-• આ એપ્લિકેશનને કાર્ય કરવા માટે પાઇથોન પેકેજો ઇન્સ્ટોલ કરવાની જરૂર છે.
-• `bytez` અને `transformers` પેકેજો મળી શક્યા નથી.
-
-**વ્યવહારુ સલાહ / Practical Advice**
-• જો તમે આને સ્થાનિક રીતે ચલાવી રહ્યા છો, તો કૃપા કરીને ડિપેન્ડન્સી ઇન્સ્ટોલ કરો:
-• `pip install bytez transformers torch accelerate`
-
-**સારાંશ / Summary**
-• AI સુવિધાઓ અક્ષમ છે. ફક્ત પૂર્વ-લેખિત જવાબોનો ઉપયોગ કરી રહ્યા છીએ."""
-        
-        if detect_language(question) == 'gujarati':
-            return specific_error_message_guj
-        else:
-            return specific_error_message_eng
-    # --- END REPAIR ---
-    
-    # Generic fallback responses (if models *are* loaded but just failed)
-    # This message will be INTERCEPTED by process_user_question
-    fallback_responses = {
-        'english': """**મુખ્ય વિચાર / Main Concept**
-• I'm currently experiencing technical difficulties with my AI models
-
-**મુખ્ય મુદ્દાઓ / Key Points**
-• Please try the 'Quick Questions' section for instant answers
-• You can also explore the 'Learn' section for resources
-• Try rephrasing your question
-
-**વ્યવહારુ સલાહ / Practical Advice**
-• Visit Digital Jain Pathshala: https://digitaljainpathshala.org/blogs
-• Check Jain eLibrary: https://www.jainelibrary.org
-• Explore JainQQ: https://www.jainqq.org
-
-**ભાવનાત્મક સહાય / Emotional Support**
-• Your spiritual journey is important - please try again soon
-
-**સારાંશ / Summary**
-• Technical issue detected - using fallback mode""",
-        
-        'gujarati': """**મુખ્ય વિચાર / Main Concept**
-• હું હાલમાં મારી AI મોડલ્સ સાથે તકનીકી મુશ્કેલીઓનો સામનો કરી રહ્યો છું
-
-**મુખ્ય મુદ્દાઓ / Key Points**
-• કૃપા કરીને ત્વરિત જવાબો માટે 'Quick Questions' વિભાગ અજમાવો
-• તમે સંસાધનો માટે 'Learn' વિભાગ પણ એક્સપ્લોર કરી શકો છો
-• તમારો પ્રશ્ન ફરીથી લખવાનો પ્રયાસ કરો
-
-**વ્યવહારુ સલાહ / Practical Advice**
-• ડિજિટલ જૈન પાઠશાળા મુલાકાત લો: https://digitaljainpathshala.org/blogs
-• જૈન ઈ-લાઈબ્રેરી તપાસો: https://www.jainelibrary.org
-• જૈનQQ એક્સપ્લોર કરો: https://www.jainqq.org
-
-**ભાવનાત્મક સહાય / Emotional Support**
-• તમારી આધ્યાત્મિક યાત્રા મહત્વપૂર્ણ છે - કૃપા કરીને ફરી પ્રયાસ કરો
-
-**સારાંશ / Summary**
-• તકનીકી સમસ્યા શોધાઈ - ફોલબેક મોડનો ઉપયોગ કરી રહ્યા છીએ"""
+    # Improved keyword-based matching for common questions
+    question_keywords = {
+        "jainism": "jainism_basics",
+        "what is jain": "jainism_basics", 
+        "basic principle": "jainism_basics",
+        "navkar": "navkar_mantra",
+        "namokar": "navkar_mantra",
+        "mantra": "navkar_mantra",
+        "ahimsa": "ahimsa",
+        "non violence": "ahimsa",
+        "non-violence": "ahimsa",
+        "three jewel": "three_jewels",
+        "ratnatraya": "three_jewels",
+        "ayambil": "ayambil",
+        "fasting": "ayambil",
+        "meditation": "meditation",
+        "karma": "karma_theory",
+        "vegetarian": "vegetarianism",
+        "diet": "vegetarianism"
     }
     
+    # Check for direct keyword matches first
+    for keyword, response_key in question_keywords.items():
+        if keyword in question_lower:
+            return QUICK_QUESTIONS_DATABASE[response_key]["answer"]
+    
+    # If no keyword match, use a more appropriate generic response
     language = detect_language(question)
-    return fallback_responses.get(language, fallback_responses['english'])
+    
+    if language == 'gujarati':
+        return """**મુખ્ય વિચાર / Main Concept**
+• હું હાલમાં આ પ્રશ્નનો સીધો જવાબ આપવામાં અસમર્થ છું
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• કૃપા કરીને તમારો પ્રશ્ન ફરીથી લખવાનો પ્રયાસ કરો
+• તમે 'Quick Questions' વિભાગમાં સામાન્ય પ્રશ્નોના જવાબ મેળવી શકો છો
+• અથવા તમારો પ્રશ્ન વિવિધ શબ્દોમાં રજૂ કરો
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• જૈન ધર્મના સિદ્ધાંતો વિશે વાંચો
+• ધાર્મિક સ્રોતોનો અભ્યાસ કરો
+• સ્થાનિક જૈન સમુદાય સાથે જોડાવો
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• તમારી આધ્યાત્મિક શોધ મહત્વપૂર્ણ છે - ચાલુ રાખો
+
+**સારાંશ / Summary**
+• કૃપા કરીને પ્રશ્ન ફરીથી લખો અથવા Quick Questions વિભાગ અજમાવો"""
+    else:
+        return """**મુખ્ય વિચાર / Main Concept**
+• I'm currently unable to provide a direct answer to this specific question
+
+**મુખ્ય મુદ્દાઓ / Key Points**
+• Please try rephrasing your question
+• You can find answers to common questions in the 'Quick Questions' section
+• Or try asking your question using different words
+
+**વ્યવહારુ સલાહ / Practical Advice**
+• Read about Jain principles and philosophy
+• Study religious texts and resources
+• Connect with local Jain community
+
+**ભાવનાત્મક સહાય / Emotional Support**
+• Your spiritual quest is important - please continue
+
+**સારાંશ / Summary**
+• Please rephrase your question or try the Quick Questions section"""
+
+def call_ai_model(models, messages):
+    """
+    Calls available AI models with fallback hierarchy.
+    Returns response and any error.
+    """
+    # If no AI models are available, return fallback
+    if not models:
+        return None, "No AI models available"
+    
+    system_prompt = None
+    user_question = None
+    
+    # Extract system prompt and user question from messages
+    for msg in messages:
+        if msg["role"] == "system":
+            system_prompt = msg["content"]
+        elif msg["role"] == "user":
+            user_question = msg["content"]
+    
+    if not user_question:
+        return "No question provided.", "No user question"
+    
+    full_prompt = f"{system_prompt}\n\nAnswer:"
+    
+    # Try Bytez models first
+    if 'bytez_qwen' in models:
+        try:
+            output, error = models['bytez_qwen'].run(full_prompt)
+            if not error:
+                return output, None
+        except Exception as e:
+            st.warning(f"Bytez Qwen failed: {e}")
+    
+    if 'bytez_gemma' in models:
+        try:
+            output, error = models['bytez_gemma'].run(full_prompt)
+            if not error:
+                return output, None
+        except Exception as e:
+            st.warning(f"Bytez Gemma failed: {e}")
+    
+    # Hugging Face fallback
+    if 'hf_chat' in models:
+        try:
+            # For DialoGPT or similar models
+            response = models['hf_chat'](
+                full_prompt,
+                max_new_tokens=500,
+                do_sample=True,
+                temperature=0.7,
+                repetition_penalty=1.1
+            )
+            if isinstance(response, list) and len(response) > 0:
+                generated_text = response[0]['generated_text']
+                # Extract only the new generated part
+                if generated_text.startswith(full_prompt):
+                    answer = generated_text[len(full_prompt):].strip()
+                else:
+                    answer = generated_text
+                return answer, None
+        except Exception as e:
+            error_msg = f"Hugging Face model error: {str(e)}"
+            return None, error_msg
+    
+    return None, "All AI models failed"
 
 def get_ai_response(question, documents, ai_models):
     """
@@ -885,12 +881,13 @@ def get_ai_response(question, documents, ai_models):
         language = detect_language(question)
         
         # Search for relevant documents
-        relevant_docs = search_in_repo(question, documents, max_results=3)
+        relevant_docs = []
+        if documents:
+            relevant_docs = search_in_repo(question, documents, max_results=3)
         
         # Combine context from relevant documents
         context = "\n\n".join([doc['content'] for doc in relevant_docs])
 
-        # --- UPGRADE: Conversational Memory ---
         # Build conversation history
         history_messages = st.session_state.messages[-6:] # Get last 6 messages (3 pairs)
         conversation_history = "\n\nPREVIOUS CONVERSATION CONTEXT:\n"
@@ -902,7 +899,6 @@ def get_ai_response(question, documents, ai_models):
                     conversation_history += f"Assistant: {msg['content']}\n"
         else:
             conversation_history = "\n\nThis is the first question.\n"
-        # --- END UPGRADE ---
         
         # SIMPLIFIED system prompt without complex practices
         base_prompt = """You are JainQuest, a helpful AI assistant for Jain philosophy.
@@ -959,7 +955,6 @@ REMEMBER: ONLY BULLET POINTS, NO PARAGRAPHS!"""
         # Add Jain knowledge sources context
         jain_sources_context = get_jain_knowledge_context()
 
-        # --- UPGRADE: Modified System Prompt ---
         system_prompt = (
             base_prompt + 
             language_instruction + 
@@ -968,7 +963,6 @@ REMEMBER: ONLY BULLET POINTS, NO PARAGRAPHS!"""
             jain_sources_context + 
             f"\n\nNEW QUESTION: {question}"
         )
-        # --- END UPGRADE ---
 
         # Prepare messages for the model
         messages = [
@@ -985,7 +979,7 @@ REMEMBER: ONLY BULLET POINTS, NO PARAGRAPHS!"""
         # Call AI models with fallback
         output, error = call_ai_model(ai_models, messages)
         
-        if error:
+        if error or not output:
             # Ultimate fallback - use quick questions database if AI fails
             return get_fallback_response(question), relevant_docs, suggestions
         elif output:
@@ -1009,6 +1003,23 @@ def render_sidebar():
             <p style="color: #666; font-size: 0.9rem;">Spiritual Guide for Everyday Life</p>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Dependency Status
+        with st.expander("🔧 System Status", expanded=False):
+            available_deps, missing_deps, ai_deps = check_dependencies()
+            
+            st.write("**Core Dependencies:**")
+            for dep in available_deps:
+                st.write(f"• {dep}")
+            
+            if missing_deps:
+                st.write("**Missing:**")
+                for dep in missing_deps:
+                    st.write(f"• {dep}")
+            
+            st.write("**AI Dependencies:**")
+            for dep in ai_deps:
+                st.write(f"• {dep}")
         
         # User Profile Section
         st.markdown("---")
@@ -1204,18 +1215,16 @@ def render_quick_questions_page():
 
 def render_chat_page():
     """Renders the main chat interface."""
-
-    # --- REPAIR 1: Check if AI models are available before rendering chat ---
+    # Check if AI models are available before rendering chat
     if not st.session_state.ai_models:
         st.markdown("### 💭 Ask Your Spiritual Questions")
         st.markdown("---")
         
-        st.error("""
-        **AI Chat Disabled: Technical Issue**
+        st.info("""
+        **📚 Quick Answers Available**
         
-        The core AI models for conversation are not available. This is likely because the required Python packages (`bytez` or `transformers`) are not installed in this environment.
-        
-        **You can still use the app's other features:**
+        While AI chat features are currently unavailable due to missing dependencies, 
+        you can still get instant answers to common spiritual questions:
         """)
         
         col1, col2 = st.columns(2)
@@ -1229,40 +1238,15 @@ def render_chat_page():
                 st.rerun()
                 
         st.markdown("---")
-        st.warning("If you are the app developer, please install the missing packages: `pip install bytez transformers torch accelerate`")
+        st.warning("""
+        **For Developer:** To enable AI chat, install required packages:
+        ```bash
+        pip install bytez transformers torch
+        ```
+        """)
 
-    # --- REPAIR 2: Check if a runtime fallback occurred ---
-    elif st.session_state.show_fallback_ui:
-        st.markdown("### 💭 Ask Your Spiritual Questions")
-        st.markdown("---")
-        
-        st.error("""
-        **AI Chat Temporarily Unavailable**
-        
-        We are experiencing technical difficulties connecting to the AI models. This may be due to high traffic or an API service issue.
-        
-        **You can still use the app's other features:**
-        """)
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("❓ Go to Quick Questions", use_container_width=True, type="primary"):
-                st.session_state.current_page = "Quick Questions"
-                st.session_state.show_fallback_ui = False # Reset flag
-                st.rerun()
-        with col2:
-            if st.button("📚 Go to Learn", use_container_width=True, type="primary"):
-                st.session_state.current_page = "Learn"
-                st.session_state.show_fallback_ui = False # Reset flag
-                st.rerun()
-                
-        st.markdown("---")
-        if st.button("🔄 Try Reconnecting to Chat"):
-            st.session_state.show_fallback_ui = False
-            st.rerun()
-        
     else:
-        # --- Original Chat Page Code ---
+        # Original Chat Page Code
         # Header with quick actions
         col1, col2 = st.columns([3, 1])
         with col1:
@@ -1328,7 +1312,6 @@ def render_chat_page():
         
         if send_clicked and question.strip():
             process_user_question(question)
-    # --- END REPAIR ---
 
 def render_learn_page():
     """Renders the learning resources page."""
@@ -1466,16 +1449,7 @@ def render_settings_page():
     feedback = st.text_area("Share your feedback or suggestions:", height=100)
     if st.button("Submit Feedback"):
         if feedback.strip():
-            # --- UPGRADE: Save feedback to file ---
-            try:
-                with open("feedback.txt", "a", encoding="utf-8") as f:
-                    f.write(f"--- {datetime.now(IST)} ---\n")
-                    f.write(f"User: {st.session_state.user_name}\n")
-                    f.write(f"Feedback: {feedback}\n\n")
-                st.success("Thank you for your feedback! 🙏")
-            except Exception as e:
-                st.error(f"Could not save feedback: {e}")
-            # --- END UPGRADE ---
+            st.success("Thank you for your feedback! 🙏")
         else:
             st.warning("Please enter your feedback before submitting.")
 
@@ -1498,16 +1472,6 @@ def process_user_question(question):
                 st.session_state.repo_content, 
                 st.session_state.ai_models
             )
-            
-            # --- REPAIR: Intercept generic fallback message ---
-            if "Technical issue detected - using fallback mode" in bot_response:
-                # Don't append this message.
-                # Instead, set a state to show the error UI.
-                st.session_state.show_fallback_ui = True
-                st.session_state.messages.pop() # Remove the user's message
-                st.rerun()
-                return # Stop processing
-            # --- END REPAIR ---
                 
             # Add bot response
             st.session_state.messages.append({"role": "assistant", "content": bot_response})
@@ -1531,23 +1495,6 @@ def main():
     # Initialize session state
     initialize_user_session()
     check_and_reset_limit()
-
-    # --- UPGRADE: Load cached models and data at the START ---
-    # This runs ONCE per session and is much faster on re-runs.
-    try:
-        if st.session_state.ai_models is None:
-            st.session_state.ai_models = cached_initialize_ai_models()
-    except Exception as e:
-            st.error(f"Failed to load AI models: {e}")
-            st.session_state.ai_models = {} # Set to empty dict to prevent re-load
-
-    try:
-        if st.session_state.repo_content is None:
-            st.session_state.repo_content = cached_load_repo_content()
-    except Exception as e:
-            st.error(f"Failed to load knowledge base: {e}")
-            st.session_state.repo_content = [] # Set to empty list to prevent re-load
-    # --- END UPGRADE ---
     
     # Custom CSS for enhanced UI
     st.markdown("""
@@ -1625,6 +1572,16 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
+    # Initialize AI Model if not already done
+    if st.session_state.ai_models is None:
+        with st.spinner("🔄 Loading AI assistant..."):
+            st.session_state.ai_models = initialize_ai_models()
+    
+    # Load Knowledge Base if not already done
+    if st.session_state.repo_content is None:
+        with st.spinner("📚 Loading knowledge base..."):
+            st.session_state.repo_content = load_repo_content()
+    
     # Render current page based on navigation
     if st.session_state.current_page == "Chat":
         render_chat_page()
@@ -1643,8 +1600,6 @@ def main():
         <p><em>For authentic spiritual guidance based on Jain teachings • Always consult human experts for critical decisions</em></p>
     </div>
     """, unsafe_allow_html=True)
-    
-    # --- UPGRADE: Removed the old loading blocks from here ---
 
 if __name__ == "__main__":
     main()
